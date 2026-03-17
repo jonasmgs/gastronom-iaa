@@ -340,35 +340,12 @@ Regras:
 
     if (!googleResponse.ok) {
       const errText = await googleResponse.text();
-      console.error('Google AI error:', googleResponse.status, errText);
+      console.error('Lovable AI error:', googleResponse.status, errText);
       if (googleResponse.status === 429) {
-        // Retry once after 2 seconds
-        await new Promise(r => setTimeout(r, 2000));
-        const retryResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(30000),
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: systemPrompt }] },
-              contents: [{ role: 'user', parts: [{ text: userContent }] }],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 8000, responseMimeType: 'application/json' }
-            }),
-          }
-        );
-        if (!retryResponse.ok) {
-          return new Response(JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente em alguns instantes.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-        }
-        const retryData = await retryResponse.json();
-        const retryText = retryData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        let retryRecipe: Record<string, unknown>;
-        try {
-          retryRecipe = JSON.parse(retryText);
-        } catch {
-          retryRecipe = extractJsonFromResponse(retryText);
-        }
-        return new Response(JSON.stringify(retryRecipe), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente em alguns instantes.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (googleResponse.status === 402) {
+        return new Response(JSON.stringify({ error: 'Créditos de IA esgotados. Adicione créditos na sua conta.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       return new Response(
         JSON.stringify({ error: 'Erro ao gerar receita, tente novamente' }),
@@ -377,7 +354,7 @@ Regras:
     }
 
     const data = await googleResponse.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const content = data.choices?.[0]?.message?.content || '';
 
     function extractJsonFromResponse(raw: string): Record<string, unknown> {
       let cleaned = raw
