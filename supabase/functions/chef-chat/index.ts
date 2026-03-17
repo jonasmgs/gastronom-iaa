@@ -77,14 +77,14 @@ Quando o usuário pedir para trocar/substituir um ingrediente desta receita:
 
     const recentMessages = messages.slice(-10);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GOOGLE_AI_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           ...recentMessages,
@@ -97,13 +97,7 @@ Quando o usuário pedir para trocar/substituir um ingrediente desta receita:
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Lovable AI error:', response.status, errText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Créditos de IA esgotados.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
+      console.error('Google AI error:', errText);
       return new Response(JSON.stringify({ error: 'Erro na API de IA' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
