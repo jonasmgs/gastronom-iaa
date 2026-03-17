@@ -318,24 +318,22 @@ Regras:
     const userContent = prompt.replace(chefPersona, '').trim();
 
     const googleResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_KEY}`,
+      'https://ai.gateway.lovable.dev/v1/chat/completions',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(30000),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        },
+        signal: AbortSignal.timeout(60000),
         body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }]
-          },
-          contents: [{
-            role: 'user',
-            parts: [{ text: userContent }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8000,
-            responseMimeType: 'application/json'
-          }
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userContent }
+          ],
+          temperature: 0.7,
+          max_tokens: 8000,
         }),
       }
     );
