@@ -31,9 +31,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Contexto da receita é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const GOOGLE_AI_KEY = Deno.env.get('GOOGLE_AI_KEY');
-    if (!GOOGLE_AI_KEY) {
-      return new Response(JSON.stringify({ error: 'GOOGLE_AI_KEY não configurada' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY não configurada' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const systemPrompt = `Você é o Gastronom.IA, um chef virtual especialista em gastronomia. Você está ajudando o usuário com uma receita específica.
