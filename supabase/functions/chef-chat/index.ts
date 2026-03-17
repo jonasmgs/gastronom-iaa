@@ -77,14 +77,14 @@ Quando o usuário pedir para trocar/substituir um ingrediente desta receita:
 
     const recentMessages = messages.slice(-10);
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GOOGLE_AI_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gemini-2.0-flash',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           ...recentMessages,
@@ -97,7 +97,7 @@ Quando o usuário pedir para trocar/substituir um ingrediente desta receita:
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Google AI error:', errText);
+      console.error('Lovable AI error:', response.status, errText);
       return new Response(JSON.stringify({ error: 'Erro na API de IA' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
