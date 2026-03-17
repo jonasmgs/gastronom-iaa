@@ -98,12 +98,6 @@ Quando o usuário pedir para trocar/substituir um ingrediente desta receita:
     if (!response.ok) {
       const errText = await response.text();
       console.error('Lovable AI error:', response.status, errText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Créditos de IA esgotados.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
       return new Response(JSON.stringify({ error: 'Erro na API de IA' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
