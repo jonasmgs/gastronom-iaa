@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import i18n from '@/i18n';
 
 function generateSessionToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
@@ -34,6 +33,8 @@ export function useAuth() {
       .single();
 
     if (data && data.session_token && data.session_token !== token) {
+      // Dynamic import to avoid circular dependency
+      const i18n = (await import('@/i18n')).default;
       await signOut(
         i18n.t('auth.sessionExpired', 'Sua sessão foi encerrada porque você entrou em outro dispositivo.')
       );
