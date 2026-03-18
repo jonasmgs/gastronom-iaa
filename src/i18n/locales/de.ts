@@ -243,5 +243,9 @@ export default {
     cancelled: 'Abonnement gekündigt.',
     activeUntil: 'Aktiv bis',
     manage: 'Verwalten',
+    benefit1: 'Unbegrenzte Rezepte',
+    benefit2: 'PDF-Rezeptbuch',
+    benefit3: 'KI-Koch-Chat (100/Monat)',
+    maybeLater: 'Vielleicht später',
   },
 } as const;

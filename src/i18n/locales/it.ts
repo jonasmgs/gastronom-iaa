@@ -243,5 +243,9 @@ export default {
     cancelled: 'Abbonamento annullato.',
     activeUntil: 'Attivo fino al',
     manage: 'Gestisci',
+    benefit1: 'Ricette illimitate',
+    benefit2: 'Libro di ricette PDF',
+    benefit3: 'Chat con chef IA (100/mese)',
+    maybeLater: 'Forse più tardi',
   },
 } as const;
