@@ -249,4 +249,12 @@ export default {
     benefit3: 'Chat con chef IA (100/mes)',
     maybeLater: 'Quizás después',
   },
+  paywall: {
+    title: '¡Desbloquea recetas ilimitadas!',
+    description: 'Suscríbete a Gastronom.IA Premium y accede a todas las funcionalidades.',
+    subscribe: 'Suscribirse ahora',
+    maybeLater: 'Quizás después',
+    bannerText: 'Suscríbete para generar recetas ilimitadas',
+    seePlans: 'Ver planes →',
+  },
 } as const;

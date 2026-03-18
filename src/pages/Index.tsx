@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, UtensilsCrossed } from 'lucide-react';
+import { Sparkles, Loader2, UtensilsCrossed, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,10 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useLocalRecipes } from '@/hooks/useLocalRecipes';
+import { useSubscription } from '@/hooks/useSubscription';
 import BottomNav from '@/components/BottomNav';
 import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
 import RecipeFilters from '@/components/RecipeFilters';
+import PaywallModal from '@/components/PaywallModal';
 import bgIngredients from '@/assets/bg-ingredients.jpg';
 import bgIngredients2 from '@/assets/bg-ingredients-2.jpg';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
@@ -28,6 +30,7 @@ const Index = () => {
   const { name } = useProfile();
   const navigate = useNavigate();
   const { addRecipe } = useLocalRecipes();
+  const { subscribed, loading: subLoading, openCheckout } = useSubscription();
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
@@ -37,6 +40,7 @@ const Index = () => {
   const [servings, setServings] = useState<number>(2);
   const [showServingsModal, setShowServingsModal] = useState(false);
   const [dietMode, setDietMode] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -48,6 +52,11 @@ const Index = () => {
   const handleGenerateClick = () => {
     if (ingredients.length < 2) {
       toast.error(t('home.minIngredients'));
+      return;
+    }
+    // Paywall check: block if not subscribed
+    if (!subLoading && !subscribed) {
+      setShowPaywall(true);
       return;
     }
     setShowServingsModal(true);
@@ -121,12 +130,23 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Badge */}
-        <div className="px-5 mb-4">
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-            <Sparkles className="h-3 w-3" /> {t('common.testMode')}
-          </span>
-        </div>
+        {/* Subscription Banner for non-subscribers */}
+        {!subLoading && !subscribed && (
+          <div className="px-5 mb-4">
+            <button
+              onClick={() => setShowPaywall(true)}
+              className="flex w-full items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-left transition-colors hover:bg-primary/10"
+            >
+              <Crown className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-xs font-medium text-foreground">
+                ✨ {t('paywall.bannerText', 'Assine para gerar receitas ilimitadas')}
+              </span>
+              <span className="ml-auto text-xs font-semibold text-primary shrink-0">
+                {t('paywall.seePlans', 'Ver planos →')}
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Shared Filters */}
         <div className="px-5 mb-4">
@@ -220,6 +240,7 @@ const Index = () => {
         </AnimatePresence>
       </div>
 
+      <PaywallModal open={showPaywall} onClose={() => setShowPaywall(false)} />
       <BottomNav />
     </main>
   );
