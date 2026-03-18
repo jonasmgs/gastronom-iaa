@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useLocalRecipes } from '@/hooks/useLocalRecipes';
 import BottomNav from '@/components/BottomNav';
 import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -26,6 +27,7 @@ const Index = () => {
   const { user } = useAuth();
   const { name } = useProfile();
   const navigate = useNavigate();
+  const { addRecipe } = useLocalRecipes();
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
@@ -65,12 +67,11 @@ const Index = () => {
         ? recipe.steps.map((s: any) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
         : recipe.preparation || '';
 
-      const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
-        user_id: user!.id,
-        recipe_name: recipe.recipe_name,
-        ingredients: recipe.ingredients,
-        preparation,
-        calories_total: recipe.calories_total,
+      const saved = addRecipe({
+        titulo: recipe.recipe_name,
+        ingredientes: recipe.ingredients,
+        modo_preparo: preparation,
+        calorias_total: recipe.calories_total,
         nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
           chef_tips: recipe.chef_tips || '',
@@ -80,9 +81,8 @@ const Index = () => {
           servings: recipe.servings || servings,
           steps: recipe.steps || [],
         }),
-      }).select().single();
+      });
 
-      if (saveErr) throw saveErr;
       navigate(`/recipe/${saved.id}`);
     } catch (err: any) {
       toast.error(err.message || t('home.errorGenerating'));
