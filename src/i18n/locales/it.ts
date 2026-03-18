@@ -36,6 +36,7 @@ export default {
     checkEmail: 'Controlla la tua email per confermare la registrazione!',
     recoveryEmail: 'Email di recupero inviata!',
     unexpectedError: 'Errore imprevisto',
+    sessionExpired: 'La tua sessione è stata chiusa perché hai effettuato l\'accesso su un altro dispositivo.',
     appName: 'NutriChef AI',
     appSlogan: 'Ricette intelligenti con IA',
   },
