@@ -249,4 +249,12 @@ export default {
     benefit3: 'KI-Koch-Chat (100/Monat)',
     maybeLater: 'Vielleicht später',
   },
+  paywall: {
+    title: 'Unbegrenzte Rezepte freischalten!',
+    description: 'Abonniere Gastronom.IA Premium und erhalte Zugang zu allen Funktionen.',
+    subscribe: 'Jetzt abonnieren',
+    maybeLater: 'Vielleicht später',
+    bannerText: 'Abonniere für unbegrenzte Rezepte',
+    seePlans: 'Pläne ansehen →',
+  },
 } as const;

@@ -249,4 +249,12 @@ export default {
     benefit3: 'AI chef chat (100/month)',
     maybeLater: 'Maybe later',
   },
+  paywall: {
+    title: 'Unlock unlimited recipes!',
+    description: 'Subscribe to Gastronom.IA Premium and access all features.',
+    subscribe: 'Subscribe now',
+    maybeLater: 'Maybe later',
+    bannerText: 'Subscribe to generate unlimited recipes',
+    seePlans: 'See plans →',
+  },
 } as const;
