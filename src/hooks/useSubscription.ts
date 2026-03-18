@@ -59,7 +59,7 @@ async function openBillingUrl(url: string) {
 }
 
 export function useSubscription() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const [state, setState] = useState<SubscriptionState>({
     subscribed: false,
     productId: null,
@@ -68,12 +68,30 @@ export function useSubscription() {
   });
 
   const checkSubscription = useCallback(async () => {
-    if (!session) {
+    if (!session || !user) {
       setState({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
       return;
     }
 
     try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('test_access')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      if (profile?.test_access) {
+        setState({
+          subscribed: true,
+          productId: 'test-access',
+          subscriptionEnd: null,
+          loading: false,
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke<{
         product_id?: string | null;
         subscribed?: boolean;
@@ -92,7 +110,7 @@ export function useSubscription() {
       console.error('Error checking subscription:', err);
       setState((prev) => ({ ...prev, loading: false }));
     }
-  }, [session]);
+  }, [session, user]);
 
   useEffect(() => {
     void checkSubscription();

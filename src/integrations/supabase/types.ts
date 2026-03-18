@@ -61,6 +61,7 @@ export type Database = {
           name: string | null
           session_token: string | null
           stripe_customer_id: string | null
+          test_access: boolean
         }
         Insert: {
           created_at?: string
@@ -69,6 +70,7 @@ export type Database = {
           name?: string | null
           session_token?: string | null
           stripe_customer_id?: string | null
+          test_access?: boolean
         }
         Update: {
           created_at?: string
@@ -77,6 +79,7 @@ export type Database = {
           name?: string | null
           session_token?: string | null
           stripe_customer_id?: string | null
+          test_access?: boolean
         }
         Relationships: []
       }
