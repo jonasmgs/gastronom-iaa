@@ -130,12 +130,23 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Badge */}
-        <div className="px-5 mb-4">
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-            <Sparkles className="h-3 w-3" /> {t('common.testMode')}
-          </span>
-        </div>
+        {/* Subscription Banner for non-subscribers */}
+        {!subLoading && !subscribed && (
+          <div className="px-5 mb-4">
+            <button
+              onClick={() => setShowPaywall(true)}
+              className="flex w-full items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-left transition-colors hover:bg-primary/10"
+            >
+              <Crown className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-xs font-medium text-foreground">
+                ✨ {t('paywall.bannerText', 'Assine para gerar receitas ilimitadas')}
+              </span>
+              <span className="ml-auto text-xs font-semibold text-primary shrink-0">
+                {t('paywall.seePlans', 'Ver planos →')}
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Shared Filters */}
         <div className="px-5 mb-4">
