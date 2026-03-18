@@ -30,6 +30,7 @@ const Index = () => {
   const { name } = useProfile();
   const navigate = useNavigate();
   const { addRecipe } = useLocalRecipes();
+  const { subscribed, loading: subLoading, openCheckout } = useSubscription();
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
@@ -39,6 +40,7 @@ const Index = () => {
   const [servings, setServings] = useState<number>(2);
   const [showServingsModal, setShowServingsModal] = useState(false);
   const [dietMode, setDietMode] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
