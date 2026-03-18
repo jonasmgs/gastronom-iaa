@@ -5,13 +5,13 @@ import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, Wh
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { useLocalRecipes, type LocalRecipe } from '@/hooks/useLocalRecipes';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import BottomNav from '@/components/BottomNav';
 import RecipeChat from '@/components/RecipeChat';
 import RecipeEditDrawer from '@/components/RecipeEditDrawer';
 import bgUtensils from '@/assets/bg-utensils.jpg';
+import type { Tables } from '@/integrations/supabase/types';
 
 interface Ingredient {
   name: string;
@@ -51,8 +51,7 @@ const RecipeResult = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { getRecipe, updateRecipe, addRecipe } = useLocalRecipes();
-  const [recipe, setRecipe] = useState<LocalRecipe | null>(null);
+  const [recipe, setRecipe] = useState<Tables<'recipes'> | null>(null);
   const [loading, setLoading] = useState(true);
   const [transforming, setTransforming] = useState(false);
   const [filters, setFilters] = useState<DietaryFilters>({ vegan: false, glutenFree: false, lactoseFree: false });
@@ -61,16 +60,20 @@ const RecipeResult = () => {
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
 
-  usePageTitle(recipe?.titulo);
+  usePageTitle(recipe?.recipe_name);
 
-  const fetchRecipe = () => {
+  const fetchRecipe = async () => {
     if (!id) return;
-    const found = getRecipe(id);
-    if (!found) {
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error || !data) {
       toast.error(t('recipes.notFound'));
       navigate('/');
     } else {
-      setRecipe(found);
+      setRecipe(data);
     }
     setLoading(false);
   };
@@ -81,13 +84,13 @@ const RecipeResult = () => {
 
   const handleShare = async () => {
     if (!recipe) return;
-    const ingredients = (recipe.ingredientes as Ingredient[]) || [];
+    const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
     let meta: RecipeMeta = {};
     try { meta = JSON.parse(recipe.nutrition_info || '{}'); } catch { meta = {}; }
     const steps = meta.steps || [];
 
-    let text = `🍽️ ${recipe.titulo}\n`;
-    text += `🔥 ${recipe.calorias_total} kcal\n`;
+    let text = `🍽️ ${recipe.recipe_name}\n`;
+    text += `🔥 ${recipe.calories_total} kcal\n`;
     if (meta.difficulty) text += `📊 ${t('recipe.difficulty')}: ${meta.difficulty}\n`;
     if (meta.prep_time) text += `⏱️ ${t('common.prep')}: ${meta.prep_time}\n`;
     if (meta.cook_time) text += `🕐 ${t('common.cooking')}: ${meta.cook_time}\n`;
@@ -105,7 +108,7 @@ const RecipeResult = () => {
         text += '\n\n';
       });
     } else {
-      text += recipe.modo_preparo + '\n';
+      text += recipe.preparation + '\n';
     }
     if (meta.chef_tips) text += `\n👨‍🍳 ${t('recipe.chefTips')}\n${meta.chef_tips}\n`;
     if (meta.nutrition_info) text += `\n📊 ${t('recipe.nutritionInfo')}\n${meta.nutrition_info}\n`;
@@ -129,8 +132,8 @@ const RecipeResult = () => {
     if (!recipe || !hasActiveFilters || !user) return;
     setTransforming(true);
     try {
-      const ingredients = (recipe.ingredientes as Ingredient[]) || [];
-      const existingText = `Nome: ${recipe.titulo}\nIngredientes: ${ingredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.modo_preparo}`;
+      const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
+      const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${ingredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
 
       const { data, error } = await supabase.functions.invoke('generate-recipe', {
         body: { mode: 'transform', existing_recipe: existingText, filters },
@@ -142,11 +145,12 @@ const RecipeResult = () => {
         ? transformed.steps.map((s: any) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
         : transformed.preparation || '';
 
-      const saved = addRecipe({
-        titulo: transformed.recipe_name,
-        ingredientes: transformed.ingredients,
-        modo_preparo: preparation,
-        calorias_total: transformed.calories_total,
+      const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
+        user_id: user.id,
+        recipe_name: transformed.recipe_name,
+        ingredients: transformed.ingredients,
+        preparation,
+        calories_total: transformed.calories_total,
         nutrition_info: JSON.stringify({
           nutrition_info: transformed.nutrition_info || '',
           chef_tips: transformed.chef_tips || '',
@@ -158,8 +162,9 @@ const RecipeResult = () => {
           dietary_tags: transformed.dietary_tags || [],
           substitutions_made: transformed.substitutions_made || '',
         }),
-      });
+      }).select().single();
 
+      if (saveErr) throw saveErr;
       toast.success(t('recipe.transformed'));
       navigate(`/recipe/${saved.id}`);
     } catch (err: any) {
@@ -189,7 +194,7 @@ const RecipeResult = () => {
 
   if (!recipe) return null;
 
-  const ingredients = (recipe.ingredientes as Ingredient[]) || [];
+  const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
 
   let meta: RecipeMeta = {};
   try {
@@ -201,6 +206,16 @@ const RecipeResult = () => {
 
   const steps = meta.steps || [];
   const hasDetailedFormat = steps.length > 0;
+
+  const handleNameSave = async (newName: string) => {
+    const trimmed = newName.trim();
+    if (trimmed && trimmed !== recipe.recipe_name) {
+      await supabase.from('recipes').update({ recipe_name: trimmed }).eq('id', recipe.id);
+      setRecipe(prev => prev ? { ...prev, recipe_name: trimmed } : prev);
+      toast.success(t('recipe.saved'));
+    }
+    setEditingName(false);
+  };
 
   return (
     <main className="min-h-screen bg-background pb-24 relative" role="main">
@@ -221,15 +236,7 @@ const RecipeResult = () => {
               autoFocus
               value={editedName}
               onChange={(e) => setEditedName(e.target.value)}
-              onBlur={() => {
-                const trimmed = editedName.trim();
-                if (trimmed && trimmed !== recipe.titulo) {
-                  updateRecipe(recipe.id, { titulo: trimmed });
-                  setRecipe((prev) => prev ? { ...prev, titulo: trimmed } : prev);
-                  toast.success(t('recipe.saved'));
-                }
-                setEditingName(false);
-              }}
+              onBlur={() => handleNameSave(editedName)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
                 if (e.key === 'Escape') setEditingName(false);
@@ -239,10 +246,10 @@ const RecipeResult = () => {
           ) : (
             <h1
               className="flex-1 text-base font-bold text-foreground line-clamp-2 leading-tight cursor-pointer"
-              onClick={() => { setEditedName(recipe.titulo); setEditingName(true); }}
+              onClick={() => { setEditedName(recipe.recipe_name); setEditingName(true); }}
               title={t('recipe.editRecipeName')}
             >
-              {recipe.titulo}
+              {recipe.recipe_name}
               <Pencil className="inline ml-1.5 h-3 w-3 text-muted-foreground" />
             </h1>
           )}
@@ -256,7 +263,7 @@ const RecipeResult = () => {
           <div className="flex flex-wrap gap-2" role="list" aria-label="Recipe info">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary" role="listitem">
               <Flame className="h-4 w-4" />
-              {recipe.calorias_total} {t('common.kcal')}
+              {recipe.calories_total} {t('common.kcal')}
             </motion.div>
             {meta.difficulty && (
               <div className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground" role="listitem">
@@ -372,7 +379,7 @@ const RecipeResult = () => {
           ) : (
             <section className="rounded-2xl border border-border bg-card p-4" aria-label={t('recipe.preparation')}>
               <h2 className="mb-3 text-sm font-semibold text-card-foreground">{t('recipe.preparation')}</h2>
-              <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{recipe.modo_preparo}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{recipe.preparation}</p>
             </section>
           )}
 
@@ -407,10 +414,10 @@ const RecipeResult = () => {
         {chatOpen && (
           <RecipeChat
             recipe={{
-              name: recipe.titulo,
+              name: recipe.recipe_name,
               ingredients: ingredients.map(i => `${i.name} (${i.quantity})`).join(', '),
-              preparation: recipe.modo_preparo,
-              calories: recipe.calorias_total,
+              preparation: recipe.preparation,
+              calories: recipe.calories_total,
             }}
             recipeId={recipe.id}
             rawIngredients={ingredients}
@@ -427,9 +434,9 @@ const RecipeResult = () => {
             open={editOpen}
             onClose={() => setEditOpen(false)}
             recipeId={recipe.id}
-            recipeName={recipe.titulo}
+            recipeName={recipe.recipe_name}
             ingredients={ingredients}
-            preparation={recipe.modo_preparo}
+            preparation={recipe.preparation}
             onRecipeUpdated={fetchRecipe}
             onOpenChat={() => setChatOpen(true)}
           />
