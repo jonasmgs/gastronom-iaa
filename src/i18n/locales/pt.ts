@@ -242,5 +242,9 @@ export default {
     cancelled: 'Assinatura cancelada.',
     activeUntil: 'Ativo até',
     manage: 'Gerenciar',
+    benefit1: 'Receitas ilimitadas',
+    benefit2: 'Livro de receitas em PDF',
+    benefit3: 'Chat com chef IA (100/mês)',
+    maybeLater: 'Talvez depois',
   },
 } as const;
