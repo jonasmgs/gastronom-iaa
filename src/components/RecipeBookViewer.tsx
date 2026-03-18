@@ -107,7 +107,6 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
       const next = prev + delta;
       if (next < 0 || next >= pages.length) return prev;
       setDirection(delta);
-      // Scroll to top on page change
       setTimeout(() => scrollRef.current?.scrollTo({ top: 0 }), 50);
       return next;
     });
@@ -127,18 +126,25 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
     return `📋 ${t('book.cat_other')}`;
   };
 
-  const slideVariants = {
+  // Page flip animation — 3D rotation around Y axis
+  const pageFlipVariants = {
     enter: (d: number) => ({
-      x: d > 0 ? '100%' : '-100%',
+      rotateY: d > 0 ? 90 : -90,
       opacity: 0,
+      transformOrigin: d > 0 ? 'left center' : 'right center',
+      scale: 0.95,
     }),
     center: {
-      x: 0,
+      rotateY: 0,
       opacity: 1,
+      transformOrigin: 'center center',
+      scale: 1,
     },
     exit: (d: number) => ({
-      x: d > 0 ? '-100%' : '100%',
+      rotateY: d > 0 ? -90 : 90,
       opacity: 0,
+      transformOrigin: d > 0 ? 'right center' : 'left center',
+      scale: 0.95,
     }),
   };
 
@@ -151,7 +157,7 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
       <p className="text-xl text-muted-foreground mb-2">{userName || t('home.chef')}</p>
       <p className="text-base text-muted-foreground">{new Date().toLocaleDateString()}</p>
       <p className="text-sm text-muted-foreground mt-12 italic">Gastronom.IA</p>
-      <p className="text-xs text-muted-foreground/50 mt-6">← {t('book.swipeHint') || 'Deslize para navegar'} →</p>
+      <p className="text-xs text-muted-foreground/50 mt-6">← {t('book.swipeHint')} →</p>
     </div>
   );
 
@@ -188,17 +194,12 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
 
     return (
       <div className="px-6 py-6">
-        {/* Category */}
         <span className="text-xs font-semibold text-primary uppercase tracking-wider">
           {getCatLabel(page.catKey || 'other')}
         </span>
-
-        {/* Title */}
         <h3 className="text-2xl font-bold text-foreground mt-2 mb-3 font-serif leading-tight">
           {recipe.recipe_name}
         </h3>
-
-        {/* Meta info */}
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-5 pb-4 border-b border-border">
           {recipe.calories_total > 0 && <span>🔥 {recipe.calories_total} kcal</span>}
           {meta.difficulty && <span>📊 {meta.difficulty}</span>}
@@ -207,7 +208,6 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
           {meta.servings && <span>👥 {meta.servings} porções</span>}
         </div>
 
-        {/* Ingredients */}
         <div className="mb-6">
           <p className="text-base font-bold text-foreground mb-3">{t('recipe.ingredients')}</p>
           <div className="space-y-2">
@@ -227,7 +227,6 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
           </div>
         </div>
 
-        {/* Steps */}
         {steps.length > 0 && (
           <div className="mb-6">
             <p className="text-base font-bold text-foreground mb-3">{t('recipe.stepByStep')}</p>
@@ -240,12 +239,8 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
                   <div className="flex-1 pt-0.5">
                     <p className="text-sm font-semibold text-foreground mb-1">{step.title}</p>
                     <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-                    {step.duration && (
-                      <p className="text-xs text-muted-foreground/60 mt-1">⏱️ {step.duration}</p>
-                    )}
-                    {step.tip && (
-                      <p className="text-xs text-primary/70 mt-1 italic">💡 {step.tip}</p>
-                    )}
+                    {step.duration && <p className="text-xs text-muted-foreground/60 mt-1">⏱️ {step.duration}</p>}
+                    {step.tip && <p className="text-xs text-primary/70 mt-1 italic">💡 {step.tip}</p>}
                   </div>
                 </div>
               ))}
@@ -253,7 +248,6 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
           </div>
         )}
 
-        {/* Fallback preparation text */}
         {steps.length === 0 && recipe.preparation && (
           <div className="mb-6">
             <p className="text-base font-bold text-foreground mb-3">{t('recipe.preparation')}</p>
@@ -261,7 +255,6 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
           </div>
         )}
 
-        {/* Nutrition */}
         {meta.nutrition_info && (
           <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
             <p className="text-sm font-bold text-foreground mb-2">📊 {t('recipe.nutritionInfo')}</p>
@@ -269,7 +262,6 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
           </div>
         )}
 
-        {/* Chef tips */}
         {meta.chef_tips && (
           <div className="mb-6 p-4 rounded-xl bg-accent/50 border border-border">
             <p className="text-sm font-bold text-foreground mb-2">👨‍🍳 {t('recipe.chefTips') || 'Dicas do Chef'}</p>
@@ -299,37 +291,46 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
         </button>
       </div>
 
-      {/* Swipeable content area — full height, scrollable vertically */}
-      <div className="flex-1 overflow-hidden relative">
+      {/* Swipeable content with page flip effect */}
+      <div className="flex-1 overflow-hidden relative" style={{ perspective: '1200px' }}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentPage}
             ref={scrollRef}
             custom={direction}
-            variants={slideVariants}
+            variants={pageFlipVariants}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.15}
             onDragEnd={handleDragEnd}
             className="absolute inset-0 overflow-y-auto overscroll-y-contain bg-card"
-            style={{ touchAction: 'pan-y' }}
+            style={{ touchAction: 'pan-y', backfaceVisibility: 'hidden' }}
           >
-            {page.type === 'cover' && renderCover()}
-            {page.type === 'index' && renderIndex()}
-            {page.type === 'recipe' && renderRecipe(page)}
+            {/* Paper texture overlay */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.02] z-10" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }} />
+            {/* Spine shadow */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/10 to-transparent z-10" />
 
-            {/* Bottom padding for comfortable scrolling */}
-            <div className="h-20" />
+            <div className="relative z-0">
+              {page.type === 'cover' && renderCover()}
+              {page.type === 'index' && renderIndex()}
+              {page.type === 'recipe' && renderRecipe(page)}
+            </div>
+
+            {/* Bottom padding so content doesn't hide behind nav */}
+            <div className="h-24" />
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Bottom navigation */}
-      <div className="shrink-0 flex gap-3 px-4 py-3 border-t border-border bg-background safe-area-pb">
+      {/* Bottom navigation — above everything with safe area padding */}
+      <div className="shrink-0 flex gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border bg-background">
         <button
           onClick={() => goTo(-1)}
           disabled={currentPage === 0}
