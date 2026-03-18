@@ -21,6 +21,11 @@ const BottomNav = () => {
     { icon: LogOut, label: t('nav.logout'), path: '__logout__' },
   ];
 
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth', { replace: true });
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/80 ios-blur overflow-hidden">
       <div className="flex w-full items-center py-2 pb-[env(safe-area-inset-bottom,8px)]">
@@ -30,7 +35,7 @@ const BottomNav = () => {
           return (
             <button
               key={item.path}
-              onClick={() => isLogout ? signOut() : navigate(item.path)}
+              onClick={() => isLogout ? handleLogout() : navigate(item.path)}
               className={`flex flex-1 min-w-0 flex-col items-center gap-0.5 py-1 text-[10px] transition-colors ${
                 isLogout
                   ? 'text-muted-foreground hover:text-destructive'

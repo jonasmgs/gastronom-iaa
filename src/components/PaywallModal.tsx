@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Crown, X, Loader2, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -21,10 +22,9 @@ const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
     try {
       await openCheckout();
     } catch {
-      // error handled in hook
+      toast.error(t('paywall.checkoutError', 'Erro ao processar pagamento, tente novamente.'));
     } finally {
       setCheckoutLoading(false);
-      onClose();
     }
   };
 
