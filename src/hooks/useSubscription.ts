@@ -48,8 +48,21 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const openCheckout = async () => {
+    console.log('[CHECKOUT] Invoking create-checkout...');
     const { data, error } = await supabase.functions.invoke('create-checkout');
-    if (error) throw new Error(error.message || 'Checkout failed');
+    console.log('[CHECKOUT] Response:', { data, error });
+    
+    if (error) {
+      // Try to extract the actual error message from the response
+      let msg = 'Checkout failed';
+      try {
+        const body = await (error as any)?.context?.json?.();
+        if (body?.error) msg = body.error;
+      } catch {
+        msg = error.message || msg;
+      }
+      throw new Error(msg);
+    }
     if (data?.error) throw new Error(data.error);
     if (data?.url) {
       window.location.href = data.url;
