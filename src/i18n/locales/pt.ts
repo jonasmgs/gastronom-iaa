@@ -235,4 +235,12 @@ export default {
     cat_breakfast: 'Café da Manhã',
     cat_other: 'Outras Receitas',
   },
+  subscription: {
+    description: 'Receitas ilimitadas, livro de receitas PDF, chat com chef IA (100/mês)',
+    subscribe: 'Assinar agora',
+    success: 'Assinatura ativada com sucesso!',
+    cancelled: 'Assinatura cancelada.',
+    activeUntil: 'Ativo até',
+    manage: 'Gerenciar',
+  },
 } as const;

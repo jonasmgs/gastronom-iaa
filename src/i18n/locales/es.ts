@@ -235,4 +235,12 @@ export default {
     cat_breakfast: 'Desayuno',
     cat_other: 'Otras Recetas',
   },
+  subscription: {
+    description: 'Recetas ilimitadas, libro de recetas PDF, chat con chef IA (100/mes)',
+    subscribe: 'Suscribirse ahora',
+    success: '¡Suscripción activada con éxito!',
+    cancelled: 'Suscripción cancelada.',
+    activeUntil: 'Activo hasta',
+    manage: 'Gestionar',
+  },
 } as const;
