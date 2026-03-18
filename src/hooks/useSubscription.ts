@@ -1,3 +1,5 @@
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -44,7 +46,12 @@ async function getFunctionErrorMessage(error: unknown, fallback: string) {
   return message;
 }
 
-function openBillingUrl(url: string) {
+async function openBillingUrl(url: string) {
+  if (Capacitor.isNativePlatform()) {
+    await Browser.open({ url });
+    return;
+  }
+
   window.location.assign(url);
 }
 
@@ -112,7 +119,7 @@ export function useSubscription() {
     if (data?.error) throw new Error(data.error);
     if (!data?.url) throw new Error('Nenhuma URL de checkout retornada');
 
-    openBillingUrl(data.url);
+    await openBillingUrl(data.url);
   };
 
   const openPortal = async () => {
@@ -129,7 +136,7 @@ export function useSubscription() {
       if (data?.error) throw new Error(data.error);
       if (!data?.url) throw new Error('Nenhuma URL do portal retornada');
 
-      openBillingUrl(data.url);
+      await openBillingUrl(data.url);
     } catch (err) {
       console.error('Error opening portal:', err);
       throw err;

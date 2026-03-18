@@ -34,8 +34,8 @@ const Settings = () => {
     setCheckoutLoading(true);
     try {
       await openCheckout();
-    } catch {
-      toast.error(t('common.error') || 'Erro ao iniciar pagamento');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('common.error') || 'Erro ao iniciar pagamento');
     } finally {
       setCheckoutLoading(false);
     }
@@ -44,8 +44,8 @@ const Settings = () => {
   const handlePortal = async () => {
     try {
       await openPortal();
-    } catch {
-      toast.error(t('common.error') || 'Erro ao abrir portal');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('common.error') || 'Erro ao abrir portal');
     }
   };
 
