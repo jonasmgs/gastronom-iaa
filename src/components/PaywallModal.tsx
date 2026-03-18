@@ -21,10 +21,9 @@ const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
     try {
       await openCheckout();
     } catch {
-      // error handled in hook
+      toast.error(t('paywall.checkoutError', 'Erro ao processar pagamento, tente novamente.'));
     } finally {
       setCheckoutLoading(false);
-      onClose();
     }
   };
 
