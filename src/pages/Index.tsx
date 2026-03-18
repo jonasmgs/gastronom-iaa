@@ -15,7 +15,6 @@ import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
 import RecipeFilters from '@/components/RecipeFilters';
 import PaywallModal from '@/components/PaywallModal';
-import RecipeFilters from '@/components/RecipeFilters';
 import bgIngredients from '@/assets/bg-ingredients.jpg';
 import bgIngredients2 from '@/assets/bg-ingredients-2.jpg';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
