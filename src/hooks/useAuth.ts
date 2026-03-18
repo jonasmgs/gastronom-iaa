@@ -1,93 +1,246 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+
+type AuthState = {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  sessionToken: string | null;
+};
+
+type AuthListener = () => void;
+
+const STORAGE_KEY = 'session_token';
+const listeners = new Set<AuthListener>();
+
+let authState: AuthState = {
+  user: null,
+  session: null,
+  loading: true,
+  sessionToken: getStoredSessionToken(),
+};
+
+let initialized = false;
+let validationInterval: ReturnType<typeof setInterval> | null = null;
+let registerSessionPromise: Promise<string | null> | null = null;
+let registerSessionUserId: string | null = null;
 
 function generateSessionToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
 }
 
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [sessionToken, setSessionToken] = useState<string | null>(
-    () => localStorage.getItem('session_token')
-  );
+function getStoredSessionToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(STORAGE_KEY);
+}
 
-  const signOut = useCallback(async (message?: string) => {
-    localStorage.removeItem('session_token');
-    setSessionToken(null);
-    await supabase.auth.signOut();
-    if (message) {
-      toast.error(message);
+function notifyListeners() {
+  listeners.forEach((listener) => listener());
+}
+
+function syncValidationLoop() {
+  if (validationInterval) {
+    clearInterval(validationInterval);
+    validationInterval = null;
+  }
+
+  if (!authState.user || !authState.sessionToken) return;
+
+  validationInterval = setInterval(() => {
+    void validateSession(authState.user!.id, authState.sessionToken);
+  }, 30_000);
+}
+
+function setAuthState(next: Partial<AuthState>) {
+  authState = { ...authState, ...next };
+  syncValidationLoop();
+  notifyListeners();
+}
+
+function setStoredSessionToken(token: string | null) {
+  if (typeof window !== 'undefined') {
+    if (token) {
+      window.localStorage.setItem(STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
     }
-  }, []);
+  }
 
-  const validateSession = useCallback(async (userId: string, token: string | null) => {
-    if (!token) return;
-    const { data } = await supabase
+  setAuthState({ sessionToken: token });
+}
+
+function subscribe(listener: AuthListener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot() {
+  return authState;
+}
+
+async function signOutInternal(message?: string) {
+  setStoredSessionToken(null);
+  setAuthState({
+    user: null,
+    session: null,
+    loading: false,
+  });
+
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn('[AUTH] signOut remote call failed, cleared local state anyway:', err);
+  }
+
+  if (message) {
+    toast.error(message);
+  }
+}
+
+async function validateSession(userId: string, token: string | null) {
+  if (!token) return;
+
+  try {
+    const { data, error } = await supabase
       .from('profiles')
       .select('session_token')
       .eq('id', userId)
       .single();
 
-    if (data && data.session_token && data.session_token !== token) {
-      // Dynamic import to avoid circular dependency
+    if (error) {
+      console.warn('[AUTH] session validation failed:', error);
+      return;
+    }
+
+    if (data?.session_token && data.session_token !== token) {
       const i18n = (await import('@/i18n')).default;
-      await signOut(
-        i18n.t('auth.sessionExpired', 'Sua sessão foi encerrada porque você entrou em outro dispositivo.')
+      await signOutInternal(
+        i18n.t(
+          'auth.sessionExpired',
+          'Sua sessao foi encerrada porque voce entrou em outro dispositivo.'
+        )
       );
     }
-  }, [signOut]);
+  } catch (err) {
+    console.warn('[AUTH] session validation crashed:', err);
+  }
+}
 
-  const registerSession = useCallback(async (userId: string) => {
-    const token = generateSessionToken();
-    localStorage.setItem('session_token', token);
-    setSessionToken(token);
-    await supabase
-      .from('profiles')
-      .update({ session_token: token } as any)
-      .eq('id', userId);
-    return token;
+async function registerSession(userId: string) {
+  if (registerSessionPromise && registerSessionUserId === userId) {
+    return registerSessionPromise;
+  }
+
+  registerSessionUserId = userId;
+  const token = generateSessionToken();
+  setStoredSessionToken(token);
+
+  registerSessionPromise = supabase
+    .from('profiles')
+    .update({ session_token: token } as never)
+    .eq('id', userId)
+    .then(({ error }) => {
+      if (error) {
+        console.warn('[AUTH] failed to register session token:', error);
+      }
+
+      return token;
+    })
+    .finally(() => {
+      registerSessionPromise = null;
+      registerSessionUserId = null;
+    });
+
+  return registerSessionPromise;
+}
+
+function handleStorageChange(event: StorageEvent) {
+  if (event.key !== STORAGE_KEY) return;
+
+  setAuthState({ sessionToken: event.newValue });
+
+  if (!event.newValue) {
+    setAuthState({
+      user: null,
+      session: null,
+      loading: false,
+    });
+  }
+}
+
+async function handleAuthStateChange(event: string, session: Session | null) {
+  if (event === 'SIGNED_OUT') {
+    setStoredSessionToken(null);
+    setAuthState({
+      user: null,
+      session: null,
+      loading: false,
+    });
+    return;
+  }
+
+  setAuthState({
+    session,
+    user: session?.user ?? null,
+    loading: false,
+  });
+
+  if (event === 'SIGNED_IN' && session?.user) {
+    await registerSession(session.user.id);
+    return;
+  }
+
+  if (session?.user && authState.sessionToken) {
+    await validateSession(session.user.id, authState.sessionToken);
+  }
+}
+
+async function initializeAuth() {
+  if (initialized) return;
+  initialized = true;
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', handleStorageChange);
+  }
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    void handleAuthStateChange(event, session);
+  });
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    setAuthState({
+      session,
+      user: session?.user ?? null,
+      loading: false,
+      sessionToken: getStoredSessionToken(),
+    });
+
+    if (session?.user && getStoredSessionToken()) {
+      await validateSession(session.user.id, getStoredSessionToken());
+    }
+  } catch (err) {
+    console.error('[AUTH] failed to load initial session:', err);
+    setAuthState({ loading: false });
+  }
+}
+
+export function useAuth() {
+  useEffect(() => {
+    void initializeAuth();
   }, []);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-      if (event === 'SIGNED_IN' && session?.user) {
-        await registerSession(session.user.id);
-      }
-      if (event === 'SIGNED_OUT') {
-        localStorage.removeItem('session_token');
-        setSessionToken(null);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      if (session?.user && sessionToken) {
-        validateSession(session.user.id, sessionToken);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Periodic session validation every 30s
-  useEffect(() => {
-    if (!user || !sessionToken) return;
-    const interval = setInterval(() => {
-      validateSession(user.id, sessionToken);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [user, sessionToken, validateSession]);
-
-  return { user, session, loading, signOut: () => signOut() };
+  return {
+    user: state.user,
+    session: state.session,
+    loading: state.loading,
+    signOut: () => signOutInternal(),
+  };
 }

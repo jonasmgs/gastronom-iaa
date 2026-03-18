@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -7,6 +7,45 @@ interface SubscriptionState {
   productId: string | null;
   subscriptionEnd: string | null;
   loading: boolean;
+}
+
+function createTimeoutError(message: string) {
+  return new Error(message);
+}
+
+async function invokeWithTimeout<T>(
+  fn: string,
+  timeoutMessage: string,
+  body?: Record<string, unknown>
+) {
+  return Promise.race([
+    supabase.functions.invoke<T>(fn, body ? { body } : undefined),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(createTimeoutError(timeoutMessage)), 20_000);
+    }),
+  ]);
+}
+
+async function getFunctionErrorMessage(error: unknown, fallback: string) {
+  let message = fallback;
+
+  try {
+    const body = await (error as { context?: { json?: () => Promise<{ error?: string }> } })?.context?.json?.();
+    if (body?.error) {
+      message = body.error;
+    }
+  } catch {
+    const fallbackMessage = (error as { message?: string })?.message;
+    if (fallbackMessage) {
+      message = fallbackMessage;
+    }
+  }
+
+  return message;
+}
+
+function openBillingUrl(url: string) {
+  window.location.assign(url);
 }
 
 export function useSubscription() {
@@ -25,7 +64,12 @@ export function useSubscription() {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const { data, error } = await supabase.functions.invoke<{
+        product_id?: string | null;
+        subscribed?: boolean;
+        subscription_end?: string | null;
+      }>('check-subscription');
+
       if (error) throw error;
 
       setState({
@@ -36,48 +80,56 @@ export function useSubscription() {
       });
     } catch (err) {
       console.error('Error checking subscription:', err);
-      setState(prev => ({ ...prev, loading: false }));
+      setState((prev) => ({ ...prev, loading: false }));
     }
   }, [session]);
 
   useEffect(() => {
-    checkSubscription();
-    // Auto-refresh every 60s
-    const interval = setInterval(checkSubscription, 60000);
+    void checkSubscription();
+
+    const interval = setInterval(() => {
+      void checkSubscription();
+    }, 60_000);
+
     return () => clearInterval(interval);
   }, [checkSubscription]);
 
   const openCheckout = async () => {
     console.log('[CHECKOUT] Invoking create-checkout...');
-    const { data, error } = await supabase.functions.invoke('create-checkout');
+
+    const { data, error } = await invokeWithTimeout<{ error?: string; url?: string }>(
+      'create-checkout',
+      'O servidor demorou muito para responder. Tente novamente.',
+      {}
+    );
+
     console.log('[CHECKOUT] Response:', { data, error });
-    
+
     if (error) {
-      // Try to extract the actual error message from the response
-      let msg = 'Checkout failed';
-      try {
-        const body = await (error as any)?.context?.json?.();
-        if (body?.error) msg = body.error;
-      } catch {
-        msg = error.message || msg;
-      }
-      throw new Error(msg);
+      throw new Error(await getFunctionErrorMessage(error, 'Erro ao criar checkout'));
     }
+
     if (data?.error) throw new Error(data.error);
-    if (data?.url) {
-      window.location.href = data.url;
-    } else {
-      throw new Error('No checkout URL returned');
-    }
+    if (!data?.url) throw new Error('Nenhuma URL de checkout retornada');
+
+    openBillingUrl(data.url);
   };
 
   const openPortal = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, '_blank');
+      const { data, error } = await invokeWithTimeout<{ error?: string; url?: string }>(
+        'customer-portal',
+        'O servidor demorou muito para responder. Tente novamente.'
+      );
+
+      if (error) {
+        throw new Error(await getFunctionErrorMessage(error, 'Erro ao abrir portal'));
       }
+
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error('Nenhuma URL do portal retornada');
+
+      openBillingUrl(data.url);
     } catch (err) {
       console.error('Error opening portal:', err);
       throw err;
