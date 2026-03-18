@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from '@/hooks/useAuth';
 import { initTheme } from '@/lib/theme';
+import SubscriptionPopup from '@/components/SubscriptionPopup';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import MyRecipes from "./pages/MyRecipes";
@@ -55,6 +56,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AppRoutes />
+        <SubscriptionPopup />
         <InstallPrompt />
       </BrowserRouter>
     </TooltipProvider>

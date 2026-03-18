@@ -36,6 +36,7 @@ export default {
     checkEmail: 'Check your email to confirm your registration!',
     recoveryEmail: 'Recovery email sent!',
     unexpectedError: 'Unexpected error',
+    sessionExpired: 'Your session was ended because you logged in on another device.',
     appName: 'NutriChef AI',
     appSlogan: 'Smart recipes with AI',
   },
@@ -242,5 +243,9 @@ export default {
     cancelled: 'Subscription cancelled.',
     activeUntil: 'Active until',
     manage: 'Manage',
+    benefit1: 'Unlimited recipes',
+    benefit2: 'PDF recipe book',
+    benefit3: 'AI chef chat (100/month)',
+    maybeLater: 'Maybe later',
   },
 } as const;

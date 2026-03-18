@@ -36,6 +36,7 @@ export default {
     checkEmail: 'Vérifiez votre email pour confirmer l\'inscription !',
     recoveryEmail: 'Email de récupération envoyé !',
     unexpectedError: 'Erreur inattendue',
+    sessionExpired: 'Votre session a été fermée car vous vous êtes connecté sur un autre appareil.',
     appName: 'NutriChef AI',
     appSlogan: 'Recettes intelligentes avec IA',
   },
@@ -242,5 +243,9 @@ export default {
     cancelled: 'Abonnement annulé.',
     activeUntil: "Actif jusqu'au",
     manage: 'Gérer',
+    benefit1: 'Recettes illimitées',
+    benefit2: 'Livre de recettes PDF',
+    benefit3: 'Chat chef IA (100/mois)',
+    maybeLater: 'Peut-être plus tard',
   },
 } as const;

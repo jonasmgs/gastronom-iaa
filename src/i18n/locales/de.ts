@@ -36,6 +36,7 @@ export default {
     checkEmail: 'Überprüfe deine E-Mail, um die Registrierung zu bestätigen!',
     recoveryEmail: 'Wiederherstellungs-E-Mail gesendet!',
     unexpectedError: 'Unerwarteter Fehler',
+    sessionExpired: 'Ihre Sitzung wurde beendet, da Sie sich auf einem anderen Gerät angemeldet haben.',
     appName: 'NutriChef AI',
     appSlogan: 'Intelligente Rezepte mit KI',
   },
@@ -242,5 +243,9 @@ export default {
     cancelled: 'Abonnement gekündigt.',
     activeUntil: 'Aktiv bis',
     manage: 'Verwalten',
+    benefit1: 'Unbegrenzte Rezepte',
+    benefit2: 'PDF-Rezeptbuch',
+    benefit3: 'KI-Koch-Chat (100/Monat)',
+    maybeLater: 'Vielleicht später',
   },
 } as const;
