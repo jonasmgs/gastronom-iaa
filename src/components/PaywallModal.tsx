@@ -24,6 +24,7 @@ const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
 
     try {
       await openCheckout();
+      onClose();
     } catch (error) {
       const message = error instanceof Error
         ? error.message

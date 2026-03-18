@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import {
+  corsHeaders,
+  createAdminClient,
+  getAuthenticatedUser,
+  getOrCreateStripeCustomerId,
+  getOrigin,
+} from "../_shared/billing.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const suffix = details ? ` ${JSON.stringify(details)}` : "";
@@ -20,58 +21,72 @@ serve(async (req) => {
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const priceId = Deno.env.get("STRIPE_PRICE_ID");
+    const { embedded = false } = await req.json().catch(() => ({}));
 
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY não está configurada");
-    if (!priceId) throw new Error("STRIPE_PRICE_ID não está configurada");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY nao esta configurada");
+    if (!priceId) throw new Error("STRIPE_PRICE_ID nao esta configurada");
 
-    logStep("Keys loaded", { priceId, keyPrefix: stripeKey.substring(0, 8) });
+    logStep("Keys loaded", {
+      priceId,
+      keyPrefix: stripeKey.substring(0, 8),
+      embedded,
+    });
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Usuário não autenticado");
-
-    // Use ANON KEY for user token validation (not SERVICE_ROLE_KEY)
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    logStep("Validating token", { tokenPrefix: token.substring(0, 20) });
-
-    const { data, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) {
-      logStep("Auth error details", { message: userError.message, status: (userError as any).status });
-      throw new Error(`Falha ao autenticar: ${userError.message}`);
-    }
-
-    const user = data.user;
-    if (!user?.email) throw new Error("Usuário sem e-mail");
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
+    const user = await getAuthenticatedUser(req, logStep);
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const adminClient = createAdminClient(logStep);
+    const customerId = await getOrCreateStripeCustomerId({
+      adminClient,
+      stripe,
+      user,
+      createIfMissing: true,
+      logStep,
+    });
+    const origin = getOrigin(req);
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    const customerId = customers.data[0]?.id;
-    logStep("Customer lookup done", { hasCustomer: Boolean(customerId) });
-
-    const origin = req.headers.get("origin") || "https://gastronom-iaa.lovable.app";
-
-    logStep("Creating checkout session", { priceId, origin });
-
-    const session = await stripe.checkout.sessions.create({
+    const baseSession = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/sucesso`,
-      cancel_url: `${origin}/planos`,
+      allow_promotion_codes: true,
       metadata: { user_id: user.id },
+    } as const;
+
+    logStep("Creating checkout session", { priceId, origin, embedded });
+
+    const session = embedded
+      ? await stripe.checkout.sessions.create({
+          ...baseSession,
+          ui_mode: "embedded",
+          redirect_on_completion: "if_required",
+          return_url: `${origin}/settings?checkout=success`,
+        })
+      : await stripe.checkout.sessions.create({
+          ...baseSession,
+          success_url: `${origin}/sucesso`,
+          cancel_url: `${origin}/planos`,
+        });
+
+    logStep("Session created", {
+      sessionId: session.id,
+      hasUrl: Boolean(session.url),
+      hasClientSecret: Boolean(session.client_secret),
     });
 
-    logStep("Session created", { sessionId: session.id, url: session.url });
+    if (embedded) {
+      if (!session.client_secret) {
+        throw new Error("Stripe nao retornou client secret");
+      }
 
-    if (!session.url) throw new Error("Stripe não retornou URL");
+      return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!session.url) throw new Error("Stripe nao retornou URL");
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,

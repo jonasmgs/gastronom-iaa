@@ -36,6 +36,22 @@ function getStoredSessionToken(): string | null {
   return window.localStorage.getItem(STORAGE_KEY);
 }
 
+function clearSupabaseAuthStorage() {
+  if (typeof window === 'undefined') return;
+
+  const keysToRemove: string[] = [];
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+    if (!key) continue;
+
+    if (key === STORAGE_KEY || /^sb-.*-auth-token$/.test(key)) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+}
+
 function notifyListeners() {
   listeners.forEach((listener) => listener());
 }
@@ -81,6 +97,7 @@ function getSnapshot() {
 }
 
 async function signOutInternal(message?: string) {
+  clearSupabaseAuthStorage();
   setStoredSessionToken(null);
   registerSessionPromise = null;
   registerSessionUserId = null;
@@ -90,9 +107,10 @@ async function signOutInternal(message?: string) {
     loading: false,
   });
 
-  void supabase.auth.signOut().catch((err) => {
-    console.warn('[AUTH] signOut remote call failed, cleared local state anyway:', err);
-  });
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  if (error) {
+    console.warn('[AUTH] signOut local call failed, cleared local state anyway:', error);
+  }
 
   if (message) {
     toast.error(message);

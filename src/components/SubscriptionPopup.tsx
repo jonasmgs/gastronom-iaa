@@ -15,6 +15,14 @@ const SubscriptionPopup = () => {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (user) return;
+
+    setVisible(false);
+    setCheckoutLoading(false);
+    setCheckoutError(null);
+  }, [user]);
+
+  useEffect(() => {
     if (!user || subLoading) return;
     if (subscribed) return;
 
