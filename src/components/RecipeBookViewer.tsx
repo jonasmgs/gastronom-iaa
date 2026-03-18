@@ -285,7 +285,7 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
   const page = pages[currentPage];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-background">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background shrink-0">
         <span className="text-sm font-medium text-muted-foreground">
