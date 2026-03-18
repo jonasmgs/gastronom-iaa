@@ -72,6 +72,7 @@ export default {
     deleteError: 'Error deleting',
     deleted: 'Recipe deleted',
     notFound: 'Recipe not found',
+    storageWarning: 'You have many saved recipes. Consider deleting some to free up space.',
   },
   recipe: {
     ingredients: '🧑‍🍳 Ingredients',

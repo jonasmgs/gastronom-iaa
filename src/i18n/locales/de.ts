@@ -72,6 +72,7 @@ export default {
     deleteError: 'Fehler beim Löschen',
     deleted: 'Rezept gelöscht',
     notFound: 'Rezept nicht gefunden',
+    storageWarning: 'Sie haben viele gespeicherte Rezepte. Erwägen Sie, einige zu löschen.',
   },
   recipe: {
     ingredients: '🧑‍🍳 Zutaten',
