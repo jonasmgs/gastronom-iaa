@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Flame, Trash2, BookOpen, Eye, Loader2 } from 'lucide-react';
@@ -9,9 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
-import RecipeBookGenerator from '@/components/RecipeBookGenerator';
-import RecipeBookViewer from '@/components/RecipeBookViewer';
 import type { Tables } from '@/integrations/supabase/types';
+
+const RecipeBookGenerator = lazy(() => import('@/components/RecipeBookGenerator'));
+const RecipeBookViewer = lazy(() => import('@/components/RecipeBookViewer'));
+
+type RecipeSummary = Pick<Tables<'recipes'>, 'id' | 'recipe_name' | 'calories_total' | 'created_at'>;
 
 const MyRecipes = () => {
   const { t, i18n } = useTranslation();
@@ -19,62 +22,153 @@ const MyRecipes = () => {
   const { name: userName } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [recipes, setRecipes] = useState<Tables<'recipes'>[]>([]);
+  const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
+  const [bookRecipes, setBookRecipes] = useState<Tables<'recipes'>[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bookLoading, setBookLoading] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
 
-  const dateLocale = i18n.language?.startsWith('pt') ? 'pt-BR' : i18n.language?.startsWith('es') ? 'es-ES' : i18n.language?.startsWith('de') ? 'de-DE' : i18n.language?.startsWith('it') ? 'it-IT' : i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+  const dateLocale = i18n.language?.startsWith('pt')
+    ? 'pt-BR'
+    : i18n.language?.startsWith('es')
+      ? 'es-ES'
+      : i18n.language?.startsWith('de')
+        ? 'de-DE'
+        : i18n.language?.startsWith('it')
+          ? 'it-IT'
+          : i18n.language?.startsWith('fr')
+            ? 'fr-FR'
+            : 'en-US';
 
-  const fetchRecipes = async () => {
-    if (!user) return;
+  const fetchBookRecipes = useCallback(async () => {
+    if (!user) {
+      setBookRecipes([]);
+      return;
+    }
+
+    setBookLoading(true);
+
     const { data, error } = await supabase
       .from('recipes')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+
     if (error) {
       console.error(error);
       toast.error(t('recipes.loadError', 'Erro ao carregar receitas'));
     } else {
-      setRecipes(data || []);
+      setBookRecipes(data || []);
     }
+
+    setBookLoading(false);
+  }, [t, user]);
+
+  const fetchRecipes = useCallback(async () => {
+    if (!user) {
+      setRecipes([]);
+      setBookRecipes([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('id, recipe_name, calories_total, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      toast.error(t('recipes.loadError', 'Erro ao carregar receitas'));
+      setRecipes([]);
+    } else {
+      const nextRecipes = (data || []) as RecipeSummary[];
+      setRecipes(nextRecipes);
+
+      if (nextRecipes.length > 0) {
+        void fetchBookRecipes();
+      } else {
+        setBookRecipes([]);
+      }
+    }
+
     setLoading(false);
-  };
+  }, [fetchBookRecipes, t, user]);
 
   useEffect(() => {
-    fetchRecipes();
-  }, [user]);
+    void fetchRecipes();
+  }, [fetchRecipes]);
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('recipes').delete().eq('id', id);
     if (error) {
       toast.error(error.message);
     } else {
-      setRecipes(prev => prev.filter(r => r.id !== id));
+      setRecipes((prev) => prev.filter((r) => r.id !== id));
+      setBookRecipes((prev) => prev.filter((r) => r.id !== id));
       toast.success(t('recipes.deleted'));
     }
+  };
+
+  const handleOpenBook = async () => {
+    if (bookRecipes.length > 0) {
+      setBookOpen(true);
+      return;
+    }
+
+    await fetchBookRecipes();
+    setBookOpen(true);
   };
 
   return (
     <main className="min-h-screen bg-background pb-24" role="main">
       <header className="px-5 pt-14 pb-4">
         <h1 className="text-2xl font-bold text-foreground">{t('recipes.title')}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t('recipes.count', { count: recipes.length })}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('recipes.count', { count: recipes.length })}</p>
         {recipes.length > 0 && (
           <div className="mt-3 space-y-2">
-            <RecipeBookGenerator recipes={recipes} userName={userName || undefined} />
+            {bookLoading && bookRecipes.length === 0 ? (
+              <button
+                disabled
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-lg opacity-80"
+              >
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('book.generating', 'Preparando livro...')}
+              </button>
+            ) : (
+              <Suspense
+                fallback={
+                  <button
+                    disabled
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-lg opacity-80"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('book.generating', 'Preparando livro...')}
+                  </button>
+                }
+              >
+                {bookRecipes.length > 0 && (
+                  <RecipeBookGenerator recipes={bookRecipes} userName={userName || undefined} />
+                )}
+              </Suspense>
+            )}
+
             <button
-              onClick={() => setBookOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3 text-sm font-semibold text-foreground shadow-sm transition-all active:scale-[0.98]"
+              onClick={() => void handleOpenBook()}
+              disabled={bookLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3 text-sm font-semibold text-foreground shadow-sm transition-all active:scale-[0.98] disabled:opacity-60"
             >
-              <Eye className="h-4 w-4" />
+              {bookLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
               {t('book.readBook')}
             </button>
           </div>
         )}
       </header>
 
-      <section className="px-5 space-y-3" aria-label={t('recipes.title')}>
+      <section className="space-y-3 px-5" aria-label={t('recipes.title')}>
         {loading ? (
           <div className="mt-16 flex flex-col items-center text-center text-muted-foreground">
             <Loader2 className="mb-3 h-8 w-8 animate-spin opacity-50" />
@@ -103,7 +197,7 @@ const MyRecipes = () => {
                   </div>
                 </button>
                 <button
-                  onClick={() => handleDelete(recipe.id)}
+                  onClick={() => void handleDelete(recipe.id)}
                   aria-label={`${t('common.delete')} ${recipe.recipe_name}`}
                   className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 >
@@ -115,12 +209,16 @@ const MyRecipes = () => {
         )}
       </section>
 
-      <RecipeBookViewer
-        recipes={recipes}
-        userName={userName || undefined}
-        open={bookOpen}
-        onClose={() => setBookOpen(false)}
-      />
+      {bookOpen && bookRecipes.length > 0 && (
+        <Suspense fallback={null}>
+          <RecipeBookViewer
+            recipes={bookRecipes}
+            userName={userName || undefined}
+            open={bookOpen}
+            onClose={() => setBookOpen(false)}
+          />
+        </Suspense>
+      )}
 
       <BottomNav />
     </main>
