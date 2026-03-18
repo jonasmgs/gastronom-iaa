@@ -222,6 +222,7 @@ export default {
     readBook: '📖 Read Recipe Book',
     prevPage: 'Previous',
     nextPage: 'Next',
+    swipeHint: 'Swipe to navigate',
     cat_salads: 'Salads & Starters',
     cat_meats: 'Meats',
     cat_fish: 'Fish & Seafood',
