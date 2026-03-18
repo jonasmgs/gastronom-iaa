@@ -1,34 +1,57 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Globe, Sun, Moon, Monitor, Type, ALargeSmall } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Globe, Sun, Moon, Monitor, Type, ALargeSmall, Crown, Loader2, CreditCard, RefreshCw } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supportedLanguages } from '@/i18n';
 import { getTheme, setTheme, getFontSize, setFontSize, getFontFamily, setFontFamily, type ThemeMode, type FontSize, type FontFamily } from '@/lib/theme';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSubscription } from '@/hooks/useSubscription';
+import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 
 const Settings = () => {
   const { t, i18n } = useTranslation();
   usePageTitle(t('settings.title'));
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [currentTheme, setCurrentTheme] = useState<ThemeMode>(getTheme());
   const [currentSize, setCurrentSize] = useState<FontSize>(getFontSize());
   const [currentFont, setCurrentFont] = useState<FontFamily>(getFontFamily());
+  const { subscribed, subscriptionEnd, loading: subLoading, openCheckout, openPortal, checkSubscription } = useSubscription();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const handleTheme = (mode: ThemeMode) => {
-    setTheme(mode);
-    setCurrentTheme(mode);
+  useEffect(() => {
+    const checkout = searchParams.get('checkout');
+    if (checkout === 'success') {
+      toast.success(t('subscription.success') || 'Assinatura ativada com sucesso!');
+      checkSubscription();
+    } else if (checkout === 'cancel') {
+      toast.info(t('subscription.cancelled') || 'Assinatura cancelada.');
+    }
+  }, [searchParams, checkSubscription, t]);
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      await openCheckout();
+    } catch {
+      toast.error(t('common.error') || 'Erro ao iniciar pagamento');
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
-  const handleSize = (size: FontSize) => {
-    setFontSize(size);
-    setCurrentSize(size);
+  const handlePortal = async () => {
+    try {
+      await openPortal();
+    } catch {
+      toast.error(t('common.error') || 'Erro ao abrir portal');
+    }
   };
 
-  const handleFont = (font: FontFamily) => {
-    setFontFamily(font);
-    setCurrentFont(font);
-  };
+  const handleTheme = (mode: ThemeMode) => { setTheme(mode); setCurrentTheme(mode); };
+  const handleSize = (size: FontSize) => { setFontSize(size); setCurrentSize(size); };
+  const handleFont = (font: FontFamily) => { setFontFamily(font); setCurrentFont(font); };
 
   const themeOptions: { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
     { value: 'light', label: t('settings.light'), icon: <Sun className="h-4 w-4" /> },
@@ -71,6 +94,73 @@ const Settings = () => {
       </header>
 
       <div className="mx-auto max-w-md space-y-6 px-4 py-6">
+        {/* Subscription */}
+        <section aria-label="Premium">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Crown className="h-4 w-4" />
+            Premium
+          </div>
+          <div className={`rounded-2xl border p-4 ${subscribed ? 'border-primary bg-primary/5' : 'border-border bg-card'}`}>
+            {subLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : subscribed ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  <span className="font-semibold text-foreground">Gastronom.IA Premium</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t('subscription.activeUntil') || 'Ativo até'}{' '}
+                  {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : '—'}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePortal}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.97]"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    {t('subscription.manage') || 'Gerenciar'}
+                  </button>
+                  <button
+                    onClick={() => checkSubscription()}
+                    className="flex items-center justify-center rounded-xl border border-border px-3 py-2.5 text-muted-foreground transition-all active:scale-[0.97]"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-semibold text-foreground">Gastronom.IA Premium</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t('subscription.description') || 'Receitas ilimitadas, livro PDF, chat com chef IA'}
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  R$ 9,90<span className="text-sm font-normal text-muted-foreground">/mês</span>
+                </p>
+                <ul className="space-y-1.5 text-sm text-muted-foreground">
+                  <li>✅ Receitas ilimitadas</li>
+                  <li>✅ Livro de receitas em PDF</li>
+                  <li>✅ Chat com chef IA (100/mês)</li>
+                </ul>
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.97] disabled:opacity-50"
+                >
+                  {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
+                  {t('subscription.subscribe') || 'Assinar agora'}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Language */}
         <section aria-label={t('settings.language')}>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
