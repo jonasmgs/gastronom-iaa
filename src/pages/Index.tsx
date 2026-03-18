@@ -240,6 +240,7 @@ const Index = () => {
         </AnimatePresence>
       </div>
 
+      <PaywallModal open={showPaywall} onClose={() => setShowPaywall(false)} />
       <BottomNav />
     </main>
   );
