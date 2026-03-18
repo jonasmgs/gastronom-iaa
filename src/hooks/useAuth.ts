@@ -128,30 +128,46 @@ async function validateSession(userId: string, token: string | null) {
   }
 }
 
+async function waitForPendingSessionRegistration(userId: string) {
+  if (!registerSessionPromise || registerSessionUserId !== userId) {
+    return;
+  }
+
+  try {
+    await registerSessionPromise;
+  } catch (err) {
+    console.warn('[AUTH] pending session registration failed:', err);
+  }
+}
+
 async function registerSession(userId: string) {
   if (registerSessionPromise && registerSessionUserId === userId) {
     return registerSessionPromise;
   }
 
   registerSessionUserId = userId;
+  setStoredSessionToken(null);
   const token = generateSessionToken();
-  setStoredSessionToken(token);
 
-  registerSessionPromise = supabase
-    .from('profiles')
-    .update({ session_token: token } as never)
-    .eq('id', userId)
-    .then(({ error }) => {
+  registerSessionPromise = (async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ session_token: token } as never)
+        .eq('id', userId);
+
       if (error) {
         console.warn('[AUTH] failed to register session token:', error);
+        return null;
       }
 
+      setStoredSessionToken(token);
       return token;
-    })
-    .finally(() => {
+    } finally {
       registerSessionPromise = null;
       registerSessionUserId = null;
-    });
+    }
+  })();
 
   return registerSessionPromise;
 }
@@ -193,6 +209,7 @@ async function handleAuthStateChange(event: string, session: Session | null) {
   }
 
   if (session?.user && authState.sessionToken) {
+    await waitForPendingSessionRegistration(session.user.id);
     await validateSession(session.user.id, authState.sessionToken);
   }
 }
@@ -221,8 +238,13 @@ async function initializeAuth() {
       sessionToken: getStoredSessionToken(),
     });
 
-    if (session?.user && getStoredSessionToken()) {
-      await validateSession(session.user.id, getStoredSessionToken());
+    if (session?.user) {
+      await waitForPendingSessionRegistration(session.user.id);
+
+      const storedToken = getStoredSessionToken();
+      if (storedToken) {
+        await validateSession(session.user.id, storedToken);
+      }
     }
   } catch (err) {
     console.error('[AUTH] failed to load initial session:', err);
