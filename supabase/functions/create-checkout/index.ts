@@ -29,15 +29,20 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Usuário não autenticado");
 
+    // Use ANON KEY for user token validation (not SERVICE_ROLE_KEY)
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } },
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
     const token = authHeader.replace("Bearer ", "");
+    logStep("Validating token", { tokenPrefix: token.substring(0, 20) });
+
     const { data, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Falha ao autenticar: ${userError.message}`);
+    if (userError) {
+      logStep("Auth error details", { message: userError.message, status: (userError as any).status });
+      throw new Error(`Falha ao autenticar: ${userError.message}`);
+    }
 
     const user = data.user;
     if (!user?.email) throw new Error("Usuário sem e-mail");
@@ -45,7 +50,6 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Check for existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     const customerId = customers.data[0]?.id;
     logStep("Customer lookup done", { hasCustomer: Boolean(customerId) });

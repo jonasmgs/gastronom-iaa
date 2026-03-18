@@ -7,18 +7,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const logStep = (step: string, details?: Record<string, unknown>) => {
+  const suffix = details ? ` ${JSON.stringify(details)}` : "";
+  console.log(`[CHECK-SUBSCRIPTION] ${step}${suffix}`);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Use ANON KEY for user token validation
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
   );
 
   try {
+    logStep("Function started");
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
@@ -27,18 +34,26 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user?.email) throw new Error("User not authenticated");
+    if (userError) {
+      logStep("Auth error", { message: userError.message });
+      throw new Error(`Auth error: ${userError.message}`);
+    }
+    if (!userData.user?.email) throw new Error("User not authenticated");
+    logStep("User authenticated", { email: userData.user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: userData.user.email, limit: 1 });
 
     if (customers.data.length === 0) {
+      logStep("No Stripe customer found");
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const customerId = customers.data[0].id;
+    logStep("Found customer", { customerId });
+
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
@@ -53,6 +68,9 @@ serve(async (req) => {
       const sub = subscriptions.data[0];
       subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
       productId = sub.items.data[0].price.product;
+      logStep("Active subscription", { productId, subscriptionEnd });
+    } else {
+      logStep("No active subscription");
     }
 
     return new Response(JSON.stringify({
@@ -64,7 +82,7 @@ serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error("[CHECK-SUBSCRIPTION]", msg);
+    logStep("ERROR", { message: msg });
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
