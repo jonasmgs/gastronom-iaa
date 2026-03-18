@@ -33,6 +33,8 @@ export function useAuth() {
       .single();
 
     if (data && data.session_token && data.session_token !== token) {
+      // Dynamic import to avoid circular dependency
+      const i18n = (await import('@/i18n')).default;
       await signOut(
         i18n.t('auth.sessionExpired', 'Sua sessão foi encerrada porque você entrou em outro dispositivo.')
       );
