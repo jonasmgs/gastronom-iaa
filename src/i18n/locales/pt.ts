@@ -72,6 +72,7 @@ export default {
     deleteError: 'Erro ao excluir',
     deleted: 'Receita excluída',
     notFound: 'Receita não encontrada',
+    storageWarning: 'Você tem muitas receitas salvas. Considere excluir algumas para liberar espaço.',
   },
   recipe: {
     ingredients: '🧑‍🍳 Ingredientes',
