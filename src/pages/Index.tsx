@@ -54,6 +54,11 @@ const Index = () => {
       toast.error(t('home.minIngredients'));
       return;
     }
+    // Paywall check: block if not subscribed
+    if (!subLoading && !subscribed) {
+      setShowPaywall(true);
+      return;
+    }
     setShowServingsModal(true);
   };
 
