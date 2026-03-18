@@ -38,6 +38,11 @@ i18n
       order: ['localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
+      convertDetectedLanguage: (lng: string) => {
+        const base = lng.split('-')[0];
+        const supported = ['pt', 'en', 'es', 'de', 'it', 'fr'];
+        return supported.includes(base) ? base : 'pt';
+      },
     },
   });
 
