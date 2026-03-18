@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "npm:stripe@18.5.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -23,9 +23,8 @@ serve(async (req) => {
 
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY não está configurada");
     if (!priceId) throw new Error("STRIPE_PRICE_ID não está configurada");
-    if (!stripeKey.startsWith("sk_live_")) {
-      throw new Error("Stripe está em modo de teste. Configure uma chave live (sk_live_...).");
-    }
+
+    logStep("Keys loaded", { priceId, keyPrefix: stripeKey.substring(0, 8) });
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Usuário não autenticado");
@@ -38,45 +37,37 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Falha ao autenticar usuário: ${userError.message}`);
+    if (userError) throw new Error(`Falha ao autenticar: ${userError.message}`);
 
     const user = data.user;
-    if (!user?.email) throw new Error("Usuário autenticado sem e-mail");
+    if (!user?.email) throw new Error("Usuário sem e-mail");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const price = await stripe.prices.retrieve(priceId);
 
-    if ("deleted" in price && price.deleted) {
-      throw new Error("STRIPE_PRICE_ID inválido");
-    }
-    if (!price.active) throw new Error("O preço configurado no Stripe está inativo");
-    if (!price.livemode) {
-      throw new Error("O preço configurado está em modo de teste. Use um price live.");
-    }
-
+    // Check for existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     const customerId = customers.data[0]?.id;
-    const origin = req.headers.get("origin")?.replace(/\/$/, "")
-      || new URL(req.headers.get("referer") || "https://gastronom-iaa.lovable.app").origin;
+    logStep("Customer lookup done", { hasCustomer: Boolean(customerId) });
 
-    logStep("Stripe checkout config ready", {
-      hasCustomer: Boolean(customerId),
-      priceId,
-      origin,
-      livemode: price.livemode,
-    });
+    const origin = req.headers.get("origin") || "https://gastronom-iaa.lovable.app";
+
+    logStep("Creating checkout session", { priceId, origin });
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
+      payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${origin}/sucesso`,
       cancel_url: `${origin}/planos`,
+      metadata: { user_id: user.id },
     });
 
-    if (!session.url) throw new Error("Stripe não retornou a URL do checkout");
+    logStep("Session created", { sessionId: session.id, url: session.url });
+
+    if (!session.url) throw new Error("Stripe não retornou URL");
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
