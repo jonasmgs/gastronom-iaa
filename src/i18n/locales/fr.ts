@@ -235,4 +235,12 @@ export default {
     cat_breakfast: 'Petit-déjeuner',
     cat_other: 'Autres Recettes',
   },
+  subscription: {
+    description: 'Recettes illimitées, livre de recettes PDF, chat chef IA (100/mois)',
+    subscribe: "S'abonner maintenant",
+    success: 'Abonnement activé avec succès !',
+    cancelled: 'Abonnement annulé.',
+    activeUntil: "Actif jusqu'au",
+    manage: 'Gérer',
+  },
 } as const;

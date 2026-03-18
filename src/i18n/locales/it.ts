@@ -235,4 +235,12 @@ export default {
     cat_breakfast: 'Colazione',
     cat_other: 'Altre Ricette',
   },
+  subscription: {
+    description: 'Ricette illimitate, libro di ricette PDF, chat con chef IA (100/mese)',
+    subscribe: 'Abbonati ora',
+    success: 'Abbonamento attivato con successo!',
+    cancelled: 'Abbonamento annullato.',
+    activeUntil: 'Attivo fino al',
+    manage: 'Gestisci',
+  },
 } as const;

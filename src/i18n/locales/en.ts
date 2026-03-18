@@ -235,4 +235,12 @@ export default {
     cat_breakfast: 'Breakfast',
     cat_other: 'Other Recipes',
   },
+  subscription: {
+    description: 'Unlimited recipes, PDF recipe book, AI chef chat (100/month)',
+    subscribe: 'Subscribe now',
+    success: 'Subscription activated successfully!',
+    cancelled: 'Subscription cancelled.',
+    activeUntil: 'Active until',
+    manage: 'Manage',
+  },
 } as const;

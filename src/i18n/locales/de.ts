@@ -235,4 +235,12 @@ export default {
     cat_breakfast: 'Frühstück',
     cat_other: 'Andere Rezepte',
   },
+  subscription: {
+    description: 'Unbegrenzte Rezepte, PDF-Rezeptbuch, KI-Koch-Chat (100/Monat)',
+    subscribe: 'Jetzt abonnieren',
+    success: 'Abonnement erfolgreich aktiviert!',
+    cancelled: 'Abonnement gekündigt.',
+    activeUntil: 'Aktiv bis',
+    manage: 'Verwalten',
+  },
 } as const;
