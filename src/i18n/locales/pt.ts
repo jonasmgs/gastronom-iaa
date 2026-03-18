@@ -222,6 +222,7 @@ export default {
     readBook: '📖 Ler Livro de Receitas',
     prevPage: 'Anterior',
     nextPage: 'Próxima',
+    swipeHint: 'Deslize para navegar',
     cat_salads: 'Saladas & Entradas',
     cat_meats: 'Carnes',
     cat_fish: 'Peixes & Frutos do Mar',
