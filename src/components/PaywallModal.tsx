@@ -16,19 +16,28 @@ const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
   const navigate = useNavigate();
   const { openCheckout } = useSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const handleSubscribe = async () => {
+    setCheckoutError(null);
     setCheckoutLoading(true);
+
     try {
       await openCheckout();
-    } catch {
-      toast.error(t('paywall.checkoutError', 'Erro ao processar pagamento, tente novamente.'));
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : t('paywall.checkoutError', 'Erro ao processar pagamento, tente novamente.');
+
+      setCheckoutError(message);
+      toast.error(message);
     } finally {
       setCheckoutLoading(false);
     }
   };
 
   const handleDismiss = () => {
+    setCheckoutError(null);
     onClose();
     navigate('/', { replace: true });
   };
@@ -90,6 +99,15 @@ const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
               {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
               {t('paywall.subscribe', 'Assinar agora')}
             </button>
+
+            {checkoutError && (
+              <div
+                className="mt-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                aria-live="polite"
+              >
+                {checkoutError}
+              </div>
+            )}
 
             <button
               onClick={handleDismiss}

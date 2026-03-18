@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Crown, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -11,12 +12,12 @@ const SubscriptionPopup = () => {
   const { subscribed, loading: subLoading, openCheckout } = useSubscription();
   const [visible, setVisible] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || subLoading) return;
     if (subscribed) return;
 
-    // Show popup only once per session
     const key = `sub_popup_shown_${user.id}`;
     if (sessionStorage.getItem(key)) return;
 
@@ -29,14 +30,21 @@ const SubscriptionPopup = () => {
   }, [user, subscribed, subLoading]);
 
   const handleSubscribe = async () => {
+    setCheckoutError(null);
     setCheckoutLoading(true);
+
     try {
       await openCheckout();
-    } catch {
-      // error handled in hook
+      setVisible(false);
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : t('paywall.checkoutError', 'Erro ao processar pagamento, tente novamente.');
+
+      setCheckoutError(message);
+      toast.error(message);
     } finally {
       setCheckoutLoading(false);
-      setVisible(false);
     }
   };
 
@@ -96,6 +104,15 @@ const SubscriptionPopup = () => {
               {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
               {t('subscription.subscribe')}
             </button>
+
+            {checkoutError && (
+              <div
+                className="mt-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                aria-live="polite"
+              >
+                {checkoutError}
+              </div>
+            )}
 
             <button
               onClick={() => setVisible(false)}
