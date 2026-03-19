@@ -1,13 +1,20 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const serverUrl = process.env.CAP_SERVER_URL?.trim();
+
 const config: CapacitorConfig = {
-  appId: 'app.lovable.4fc57f9bba8949b488bf1207476585d2',
+  appId: 'com.gastronom.ia',
   appName: 'Gastronom.IA',
   webDir: 'dist',
-  server: {
-    url: 'https://4fc57f9b-ba89-49b4-88bf-1207476585d2.lovableproject.com?forceHideBadge=true',
-    cleartext: true,
-  },
+  bundledWebRuntime: false,
+  ...(serverUrl
+    ? {
+        server: {
+          url: serverUrl,
+          cleartext: serverUrl.startsWith('http://'),
+        },
+      }
+    : {}),
 };
 
 export default config;

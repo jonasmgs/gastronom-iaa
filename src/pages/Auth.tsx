@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChefHat, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import LanguageSelector from '@/components/LanguageSelector';
 import bgIngredients from '@/assets/bg-ingredients.jpg';
 import bgIngredients2 from '@/assets/bg-ingredients-2.jpg';
@@ -150,6 +151,9 @@ const Auth = () => {
             {mode === 'forgot' && (
               <button onClick={() => setMode('login')} className="block w-full hover:text-foreground transition-colors">{t('auth.backToLogin')}</button>
             )}
+            <Link to="/privacy" className="block w-full hover:text-foreground transition-colors">
+              Politica de privacidade
+            </Link>
           </div>
         </div>
       </motion.div>

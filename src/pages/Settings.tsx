@@ -5,26 +5,43 @@ import { supportedLanguages } from '@/i18n';
 import { getTheme, setTheme, getFontSize, setFontSize, getFontFamily, setFontFamily, type ThemeMode, type FontSize, type FontFamily } from '@/lib/theme';
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { getAndroidBillingUnavailableMessage, isNativeAndroid } from '@/lib/billing-platform';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const Settings = () => {
   const { t, i18n } = useTranslation();
   usePageTitle(t('settings.title'));
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { session, signOut } = useAuth();
   const [currentTheme, setCurrentTheme] = useState<ThemeMode>(getTheme());
   const [currentSize, setCurrentSize] = useState<FontSize>(getFontSize());
   const [currentFont, setCurrentFont] = useState<FontFamily>(getFontFamily());
   const { subscribed, subscriptionEnd, loading: subLoading, openCheckout, openPortal, checkSubscription } = useSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const androidNative = isNativeAndroid();
 
   useEffect(() => {
     const checkout = searchParams.get('checkout');
     if (checkout === 'success') {
       toast.success(t('subscription.success') || 'Assinatura ativada com sucesso!');
-      checkSubscription();
+      void checkSubscription();
     } else if (checkout === 'cancel') {
       toast.info(t('subscription.cancelled') || 'Assinatura cancelada.');
     }
@@ -46,6 +63,31 @@ const Settings = () => {
       await openPortal();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('common.error') || 'Erro ao abrir portal');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!session?.access_token) {
+      toast.error('Sessao nao encontrada. Entre novamente para continuar.');
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      const { error } = await invokeEdgeFunction('delete-account', {
+        token: session.access_token,
+      });
+
+      if (error) throw error;
+
+      await signOut();
+      navigate('/auth', { replace: true });
+      toast.success('Conta excluida com sucesso.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao excluir conta');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -94,7 +136,6 @@ const Settings = () => {
       </header>
 
       <div className="mx-auto max-w-md space-y-6 px-4 py-6">
-        {/* Subscription */}
         <section aria-label="Premium">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Crown className="h-4 w-4" />
@@ -112,24 +153,30 @@ const Settings = () => {
                   <span className="font-semibold text-foreground">Gastronom.IA Premium</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {t('subscription.activeUntil') || 'Ativo até'}{' '}
-                  {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : '—'}
+                  {t('subscription.activeUntil') || 'Ativo ate'}{' '}
+                  {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : '-'}
                 </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePortal}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.97]"
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    {t('subscription.manage') || 'Gerenciar'}
-                  </button>
-                  <button
-                    onClick={() => checkSubscription()}
-                    className="flex items-center justify-center rounded-xl border border-border px-3 py-2.5 text-muted-foreground transition-all active:scale-[0.97]"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </button>
-                </div>
+                {androidNative ? (
+                  <p className="text-xs text-muted-foreground">
+                    {getAndroidBillingUnavailableMessage()}
+                  </p>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handlePortal}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.97]"
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      {t('subscription.manage') || 'Gerenciar'}
+                    </button>
+                    <button
+                      onClick={() => void checkSubscription()}
+                      className="flex items-center justify-center rounded-xl border border-border px-3 py-2.5 text-muted-foreground transition-all active:scale-[0.97]"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
@@ -141,27 +188,77 @@ const Settings = () => {
                   {t('subscription.description') || 'Receitas ilimitadas, livro PDF, chat com chef IA'}
                 </p>
                 <p className="text-2xl font-bold text-foreground">
-                  R$ 9,90<span className="text-sm font-normal text-muted-foreground">/mês</span>
+                  R$ 9,90<span className="text-sm font-normal text-muted-foreground">/mes</span>
                 </p>
                 <ul className="space-y-1.5 text-sm text-muted-foreground">
-                  <li>✅ Receitas ilimitadas</li>
-                  <li>✅ Livro de receitas em PDF</li>
-                  <li>✅ Chat com chef IA (100/mês)</li>
+                  <li>Receitas ilimitadas</li>
+                  <li>Livro de receitas em PDF</li>
+                  <li>Chat com chef IA (100/mes)</li>
                 </ul>
-                <button
-                  onClick={handleCheckout}
-                  disabled={checkoutLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.97] disabled:opacity-50"
-                >
-                  {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
-                  {t('subscription.subscribe') || 'Assinar agora'}
-                </button>
+                {androidNative ? (
+                  <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                    {getAndroidBillingUnavailableMessage()}
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleCheckout}
+                    disabled={checkoutLoading}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.97] disabled:opacity-50"
+                  >
+                    {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
+                    {t('subscription.subscribe') || 'Assinar agora'}
+                  </button>
+                )}
               </div>
             )}
           </div>
         </section>
 
-        {/* Language */}
+        <section aria-label="Privacidade e conta">
+          <div className="mb-3 text-sm font-medium text-muted-foreground">
+            Privacidade e conta
+          </div>
+          <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+            <button
+              onClick={() => navigate('/privacy')}
+              className="flex w-full items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-accent"
+            >
+              <span>Politica de privacidade</span>
+              <span className="text-muted-foreground">Abrir</span>
+            </button>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="flex w-full items-center justify-between rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-left text-sm text-destructive transition-colors hover:bg-destructive/10">
+                  <span>Excluir conta</span>
+                  <span>Permanentemente</span>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acao remove sua conta, receitas e perfil nutricional do app. Registros de pagamento podem ser mantidos pelo provedor de pagamento quando exigido por lei.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(event) => {
+                      event.preventDefault();
+                      void handleDeleteAccount();
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deleteLoading}
+                  >
+                    {deleteLoading ? 'Excluindo...' : 'Excluir conta'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </section>
+
         <section aria-label={t('settings.language')}>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Globe className="h-4 w-4" />
@@ -187,7 +284,6 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Theme */}
         <section aria-label={t('settings.theme')}>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Sun className="h-4 w-4" />
@@ -213,7 +309,6 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Font Size */}
         <section aria-label={t('settings.fontSize')}>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <ALargeSmall className="h-4 w-4" />
@@ -239,7 +334,6 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Font Family */}
         <section aria-label={t('settings.fontFamily')}>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Type className="h-4 w-4" />

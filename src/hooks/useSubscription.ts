@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
 import { openEmbeddedCheckout } from '@/hooks/useEmbeddedCheckout';
+import { getAndroidBillingUnavailableMessage, isNativeAndroid } from '@/lib/billing-platform';
 import { SUBSCRIPTION_REFRESH_EVENT } from '@/lib/subscription-events';
 import { shouldUseEmbeddedCheckoutBrowser } from '@/lib/checkout';
 import { hasStripePublishableKey } from '@/lib/stripe';
@@ -154,6 +155,10 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const openCheckout = async () => {
+    if (isNativeAndroid()) {
+      throw new Error(getAndroidBillingUnavailableMessage());
+    }
+
     const activeSession = await getActiveSession();
     if (!activeSession) {
       throw new Error('Sessao nao encontrada. Entre novamente para continuar.');
@@ -199,6 +204,10 @@ export function useSubscription() {
 
   const openPortal = async () => {
     try {
+      if (isNativeAndroid()) {
+        throw new Error(getAndroidBillingUnavailableMessage());
+      }
+
       const activeSession = await getActiveSession();
       if (!activeSession) {
         throw new Error('Sessao nao encontrada. Entre novamente para continuar.');

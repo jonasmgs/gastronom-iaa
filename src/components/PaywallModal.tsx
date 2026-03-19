@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Crown, X, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAndroidBillingUnavailableMessage, isNativeAndroid } from '@/lib/billing-platform';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface PaywallModalProps {
@@ -17,6 +18,7 @@ const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
   const { openCheckout } = useSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const androidNative = isNativeAndroid();
 
   const handleSubscribe = async () => {
     setCheckoutError(null);
@@ -92,14 +94,20 @@ const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
               R$ 9,90<span className="text-sm font-normal text-muted-foreground">/mês</span>
             </p>
 
-            <button
-              onClick={handleSubscribe}
-              disabled={checkoutLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.97] disabled:opacity-50"
-            >
-              {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
-              {t('paywall.subscribe', 'Assinar agora')}
-            </button>
+            {androidNative ? (
+              <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                {getAndroidBillingUnavailableMessage()}
+              </div>
+            ) : (
+              <button
+                onClick={handleSubscribe}
+                disabled={checkoutLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.97] disabled:opacity-50"
+              >
+                {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
+                {t('paywall.subscribe', 'Assinar agora')}
+              </button>
+            )}
 
             {checkoutError && (
               <div

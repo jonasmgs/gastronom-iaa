@@ -16,6 +16,7 @@ import RecipeResult from "./pages/RecipeResult";
 import EditRecipe from "./pages/EditRecipe";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const AppRoutes = () => {
       <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
       <Route path="/edit-recipe" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/sucesso" element={<Navigate to="/settings?checkout=success" replace />} />
       <Route path="/planos" element={<Navigate to="/settings?checkout=cancel" replace />} />
       <Route path="/nutrition" element={<Navigate to="/" replace />} />
