@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import RecipeFilters from '@/components/RecipeFilters';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 
 interface NutritionData {
   height_cm: number | '';
@@ -43,7 +44,7 @@ interface Props {
 
 const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
   const [recipe, setRecipe] = useState<GeneratedRecipe | null>(null);
@@ -58,7 +59,8 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
     setGenerating(true);
     setRecipe(null);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<GeneratedRecipe>('generate-recipe', {
+        token: session?.access_token,
         body: {
           ingredients: ingredients.length > 0 ? ingredients : [],
           category: dishType,

@@ -2,6 +2,7 @@ import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 import { openEmbeddedCheckout } from '@/hooks/useEmbeddedCheckout';
 import { SUBSCRIPTION_REFRESH_EVENT } from '@/lib/subscription-events';
 import { hasStripePublishableKey } from '@/lib/stripe';
@@ -19,12 +20,11 @@ function createTimeoutError(message: string) {
 }
 
 async function invokeWithTimeout<T>(
-  fn: string,
+  fn: () => Promise<{ data: T | null; error: Error | null }>,
   timeoutMessage: string,
-  body?: Record<string, unknown>
 ) {
   return Promise.race([
-    supabase.functions.invoke<T>(fn, body ? { body } : undefined),
+    fn(),
     new Promise<never>((_, reject) => {
       setTimeout(() => reject(createTimeoutError(timeoutMessage)), 20_000);
     }),
@@ -92,11 +92,11 @@ export function useSubscription() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke<{
+      const { data, error } = await invokeEdgeFunction<{
         product_id?: string | null;
         subscribed?: boolean;
         subscription_end?: string | null;
-      }>('check-subscription');
+      }>('check-subscription', { token: session.access_token });
 
       if (error) throw error;
 
@@ -142,10 +142,11 @@ export function useSubscription() {
       clientSecret?: string;
       error?: string;
       url?: string;
-    }>(
-      'create-checkout',
+    }>(() => invokeEdgeFunction('create-checkout', {
+      body: { embedded },
+      token: session?.access_token,
+    }),
       'O servidor demorou muito para responder. Tente novamente.',
-      { embedded }
     );
 
     console.log('[CHECKOUT] Response:', { data, error });
@@ -169,10 +170,10 @@ export function useSubscription() {
 
   const openPortal = async () => {
     try {
-      const { data, error } = await invokeWithTimeout<{ error?: string; url?: string }>(
+      const { data, error } = await invokeWithTimeout<{ error?: string; url?: string }>(() => invokeEdgeFunction(
         'customer-portal',
-        'O servidor demorou muito para responder. Tente novamente.'
-      );
+        { token: session?.access_token }
+      ), 'O servidor demorou muito para responder. Tente novamente.');
 
       if (error) {
         throw new Error(await getFunctionErrorMessage(error, 'Erro ao abrir portal'));

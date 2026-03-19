@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 import BottomNav from '@/components/BottomNav';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
 
@@ -20,7 +21,7 @@ interface DietaryFilters {
 const EditRecipe = () => {
   const { t } = useTranslation();
   usePageTitle(t('edit.title').replace(' ✨', ''));
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [recipeText, setRecipeText] = useState('');
   const [filters, setFilters] = useState<DietaryFilters>({ vegan: false, glutenFree: false, lactoseFree: false });
@@ -55,8 +56,9 @@ const EditRecipe = () => {
     if (!validate() || !user) return;
     setTransforming(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<any>('generate-recipe', {
         body: { mode: 'transform', existing_recipe: recipeText, filters },
+        token: session?.access_token,
       });
       if (error) throw error;
 

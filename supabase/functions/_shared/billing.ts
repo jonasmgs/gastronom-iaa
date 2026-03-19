@@ -12,7 +12,7 @@ const DEFAULT_ORIGIN = "https://gastronom-iaa.lovable.app";
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function getRequiredEnv(name: string) {
@@ -41,7 +41,9 @@ export function createAdminClient(logStep?: LogStep): SupabaseClient | null {
 
 export async function getAuthenticatedUser(req: Request, logStep?: LogStep) {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) throw new Error("No authorization header");
+  const customToken = req.headers.get("x-user-jwt");
+  const token = customToken || authHeader?.replace("Bearer ", "");
+  if (!token) throw new Error("No authorization token");
 
   const supabaseClient = createClient(
     getRequiredEnv("SUPABASE_URL"),
@@ -49,7 +51,6 @@ export async function getAuthenticatedUser(req: Request, logStep?: LogStep) {
     { auth: { persistSession: false } },
   );
 
-  const token = authHeader.replace("Bearer ", "");
   logStep?.("Validating token", { tokenPrefix: token.substring(0, 20) });
 
   const { data, error } = await supabaseClient.auth.getUser(token);
