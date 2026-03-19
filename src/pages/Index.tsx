@@ -66,7 +66,7 @@ const Index = () => {
     setShowServingsModal(false);
     setGenerating(true);
     try {
-      const { data, error } = await invokeEdgeFunction<any>('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<any>('recipe-generator', {
         body: { ingredients, category, complexity, servings, description: description.trim() || null, dietMode },
         token: session?.access_token,
       });

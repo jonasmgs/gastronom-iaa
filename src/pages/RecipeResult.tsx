@@ -136,7 +136,7 @@ const RecipeResult = () => {
       const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
       const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${ingredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
 
-      const { data, error } = await invokeEdgeFunction<any>('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<any>('recipe-generator', {
         body: { mode: 'transform', existing_recipe: existingText, filters },
         token: session?.access_token,
       });

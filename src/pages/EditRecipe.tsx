@@ -56,7 +56,7 @@ const EditRecipe = () => {
     if (!validate() || !user) return;
     setTransforming(true);
     try {
-      const { data, error } = await invokeEdgeFunction<any>('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<any>('recipe-generator', {
         body: { mode: 'transform', existing_recipe: recipeText, filters },
         token: session?.access_token,
       });

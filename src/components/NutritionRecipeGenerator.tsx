@@ -59,7 +59,7 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
     setGenerating(true);
     setRecipe(null);
     try {
-      const { data, error } = await invokeEdgeFunction<GeneratedRecipe>('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<GeneratedRecipe>('recipe-generator', {
         token: session?.access_token,
         body: {
           ingredients: ingredients.length > 0 ? ingredients : [],
