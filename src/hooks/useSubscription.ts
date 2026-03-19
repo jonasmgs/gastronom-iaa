@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
 import { openEmbeddedCheckout } from '@/hooks/useEmbeddedCheckout';
 import { SUBSCRIPTION_REFRESH_EVENT } from '@/lib/subscription-events';
+import { shouldUseEmbeddedCheckoutBrowser } from '@/lib/checkout';
 import { hasStripePublishableKey } from '@/lib/stripe';
 import { useAuth } from './useAuth';
 
@@ -40,10 +41,12 @@ async function getFunctionErrorMessage(error: unknown, fallback: string) {
       message = body.error;
     }
   } catch {
-    const fallbackMessage = (error as { message?: string })?.message;
-    if (fallbackMessage) {
-      message = fallbackMessage;
-    }
+    // Ignore body parsing failures and fall back to the error message below.
+  }
+
+  const fallbackMessage = (error as { message?: string })?.message;
+  if (fallbackMessage) {
+    message = fallbackMessage;
   }
 
   return message;
@@ -67,13 +70,30 @@ export function useSubscription() {
     loading: true,
   });
 
-  const checkSubscription = useCallback(async () => {
-    if (!session || !user) {
-      setState({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
-      return;
+  const getActiveSession = useCallback(async () => {
+    if (session) return session;
+
+    const {
+      data: { session: currentSession },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) {
+      throw error;
     }
 
+    return currentSession;
+  }, [session]);
+
+  const checkSubscription = useCallback(async () => {
     try {
+      const activeSession = await getActiveSession();
+
+      if (!activeSession || !user) {
+        setState({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
+        return;
+      }
+
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('test_access')
@@ -96,7 +116,7 @@ export function useSubscription() {
         product_id?: string | null;
         subscribed?: boolean;
         subscription_end?: string | null;
-      }>('check-subscription', { token: session.access_token });
+      }>('check-subscription', { token: activeSession.access_token });
 
       if (error) throw error;
 
@@ -110,7 +130,7 @@ export function useSubscription() {
       console.error('Error checking subscription:', err);
       setState((prev) => ({ ...prev, loading: false }));
     }
-  }, [session, user]);
+  }, [getActiveSession, user]);
 
   useEffect(() => {
     void checkSubscription();
@@ -134,22 +154,31 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const openCheckout = async () => {
-    const embedded = !Capacitor.isNativePlatform() && hasStripePublishableKey();
+    const activeSession = await getActiveSession();
+    if (!activeSession) {
+      throw new Error('Sessao nao encontrada. Entre novamente para continuar.');
+    }
 
-    console.log('[CHECKOUT] Invoking create-checkout...');
+    let shouldUseEmbedded = !Capacitor.isNativePlatform() && hasStripePublishableKey() && shouldUseEmbeddedCheckoutBrowser();
 
-    const { data, error } = await invokeWithTimeout<{
+    const invokeCheckout = (useEmbedded: boolean) => invokeWithTimeout<{
       clientSecret?: string;
       error?: string;
       url?: string;
     }>(() => invokeEdgeFunction('create-checkout', {
-      body: { embedded },
-      token: session?.access_token,
+      body: { embedded: useEmbedded },
+      token: activeSession.access_token,
     }),
       'O servidor demorou muito para responder. Tente novamente.',
     );
 
-    console.log('[CHECKOUT] Response:', { data, error });
+    let { data, error } = await invokeCheckout(shouldUseEmbedded);
+
+    if (shouldUseEmbedded && error) {
+      console.warn('[CHECKOUT] Embedded checkout failed, falling back to hosted checkout', error);
+      shouldUseEmbedded = false;
+      ({ data, error } = await invokeCheckout(false));
+    }
 
     if (error) {
       throw new Error(await getFunctionErrorMessage(error, 'Erro ao criar checkout'));
@@ -157,7 +186,7 @@ export function useSubscription() {
 
     if (data?.error) throw new Error(data.error);
 
-    if (embedded) {
+    if (shouldUseEmbedded) {
       if (!data?.clientSecret) throw new Error('Nenhum client secret de checkout retornado');
       openEmbeddedCheckout(data.clientSecret);
       return;
@@ -170,9 +199,14 @@ export function useSubscription() {
 
   const openPortal = async () => {
     try {
+      const activeSession = await getActiveSession();
+      if (!activeSession) {
+        throw new Error('Sessao nao encontrada. Entre novamente para continuar.');
+      }
+
       const { data, error } = await invokeWithTimeout<{ error?: string; url?: string }>(() => invokeEdgeFunction(
         'customer-portal',
-        { token: session?.access_token }
+        { token: activeSession.access_token }
       ), 'O servidor demorou muito para responder. Tente novamente.');
 
       if (error) {

@@ -1,73 +1,80 @@
-# Welcome to your Lovable project
+# Gastronom.IA
 
-## Project info
+Aplicativo React + Supabase + Stripe para gerar receitas com IA, conversar com o chef virtual e assinar o plano premium.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Rodando localmente
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-**Edit a file directly in GitHub**
+O app local fica em `http://127.0.0.1:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Variáveis de ambiente
 
-**Use GitHub Codespaces**
+Frontend:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_SUPABASE_PROJECT_ID=
+VITE_STRIPE_PUBLISHABLE_KEY=
+VITE_STRIPE_EMBEDDED_HOSTS=
+VITE_STRIPE_FORCE_HOSTED_CHECKOUT=
+```
 
-## What technologies are used for this project?
+Backend / Supabase secrets:
 
-This project is built with:
+```text
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+GOOGLE_AI_KEY
+STRIPE_SECRET_KEY
+STRIPE_PRICE_ID
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Stripe checkout
 
-## How can I deploy this project?
+- Em `localhost` e `127.0.0.1`, o app usa checkout hospedado do Stripe para testes mais estáveis.
+- Em produção web, o app pode usar Stripe Embedded Checkout.
+- Para restringir o embedded ao domínio final, preencha `VITE_STRIPE_EMBEDDED_HOSTS` com uma lista separada por vírgulas.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Exemplo:
 
-## Can I connect a custom domain to my Lovable project?
+```env
+VITE_STRIPE_EMBEDDED_HOSTS=app.gastronomia.com.br,www.gastronomia.com.br
+```
 
-Yes, you can!
+Se quiser forçar checkout hospedado mesmo em produção:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```env
+VITE_STRIPE_FORCE_HOSTED_CHECKOUT=true
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Supabase functions usadas
+
+- `recipe-generator`
+- `chef-chat`
+- `check-subscription`
+- `create-checkout`
+- `customer-portal`
+
+## Publicação
+
+Build do frontend:
+
+```sh
+npm run build
+```
+
+Deploy das functions:
+
+```sh
+npx supabase functions deploy recipe-generator --no-verify-jwt
+npx supabase functions deploy chef-chat --no-verify-jwt
+npx supabase functions deploy check-subscription --no-verify-jwt
+npx supabase functions deploy create-checkout --no-verify-jwt
+npx supabase functions deploy customer-portal --no-verify-jwt
+```

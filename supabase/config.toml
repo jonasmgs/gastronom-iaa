@@ -1,8 +1,5 @@
 project_id = "yonfwhcriumpqevsiuoz"
 
-[functions.generate-recipe]
-verify_jwt = false
-
 [functions.chef-chat]
 verify_jwt = false
 
