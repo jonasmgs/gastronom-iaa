@@ -50,8 +50,8 @@ async function streamChat({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      'x-user-jwt': token,
     },
     body: JSON.stringify({ messages, recipe_context }),
   });

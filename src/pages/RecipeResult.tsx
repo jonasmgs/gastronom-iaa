@@ -12,6 +12,7 @@ import RecipeChat from '@/components/RecipeChat';
 import RecipeEditDrawer from '@/components/RecipeEditDrawer';
 import bgUtensils from '@/assets/bg-utensils.jpg';
 import type { Tables } from '@/integrations/supabase/types';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 
 interface Ingredient {
   name: string;
@@ -49,7 +50,7 @@ interface DietaryFilters {
 const RecipeResult = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [recipe, setRecipe] = useState<Tables<'recipes'> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,8 +136,9 @@ const RecipeResult = () => {
       const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
       const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${ingredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
 
-      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<any>('generate-recipe', {
         body: { mode: 'transform', existing_recipe: existingText, filters },
+        token: session?.access_token,
       });
       if (error) throw error;
 

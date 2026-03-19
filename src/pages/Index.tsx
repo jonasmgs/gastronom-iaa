@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSubscription } from '@/hooks/useSubscription';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 import BottomNav from '@/components/BottomNav';
 import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -25,7 +26,7 @@ const bgImages = [bgIngredients, bgIngredients2, bgIngredients3, bgIngredients4,
 const Index = () => {
   const { t } = useTranslation();
   usePageTitle();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { name } = useProfile();
   const navigate = useNavigate();
   const { subscribed, loading: subLoading } = useSubscription();
@@ -65,8 +66,9 @@ const Index = () => {
     setShowServingsModal(false);
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+      const { data, error } = await invokeEdgeFunction<any>('generate-recipe', {
         body: { ingredients, category, complexity, servings, description: description.trim() || null, dietMode },
+        token: session?.access_token,
       });
       if (error) throw error;
 
