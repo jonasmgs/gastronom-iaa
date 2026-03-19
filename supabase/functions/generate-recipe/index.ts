@@ -1,408 +1,322 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type Ingredient = {
+  name: string;
+  quantity: string;
+  calories: number;
+  tip: string;
+};
+
+type Step = {
+  step_number: number;
+  title: string;
+  description: string;
+  duration: string;
+  tip: string;
+};
+
+function getBearerToken(req: Request) {
+  const customToken = req.headers.get("x-user-jwt");
+  if (customToken) return `Bearer ${customToken}`;
+  return req.headers.get("Authorization");
+}
+
+function buildSupabaseClient(bearer: string) {
+  return createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: bearer } } },
+  );
+}
+
+function sanitizeItems(items: unknown) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0 && item.length <= 100)
+    .slice(0, 20);
+}
+
+function parseJsonPayload(raw: string) {
+  const cleaned = raw
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error("No JSON object returned by model");
+  }
+
+  return JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+}
+
+function normalizeIngredients(value: unknown): Ingredient[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      const record = typeof item === "object" && item ? item as Record<string, unknown> : {};
+      return {
+        name: String(record.name ?? "").trim(),
+        quantity: String(record.quantity ?? "").trim(),
+        calories: Number(record.calories ?? 0) || 0,
+        tip: String(record.tip ?? "").trim(),
+      };
+    })
+    .filter((item) => item.name.length > 0);
+}
+
+function normalizeSteps(value: unknown): Step[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item, index) => {
+      const record = typeof item === "object" && item ? item as Record<string, unknown> : {};
+      return {
+        step_number: Number(record.step_number ?? index + 1) || index + 1,
+        title: String(record.title ?? `Passo ${index + 1}`).trim(),
+        description: String(record.description ?? "").trim(),
+        duration: String(record.duration ?? "").trim(),
+        tip: String(record.tip ?? "").trim(),
+      };
+    })
+    .filter((item) => item.description.length > 0);
+}
+
+function normalizeRecipe(recipe: Record<string, unknown>) {
+  const ingredients = normalizeIngredients(recipe.ingredients);
+  const steps = normalizeSteps(recipe.steps);
+
+  if (ingredients.length === 0 || steps.length === 0) {
+    throw new Error("Model returned an incomplete recipe");
+  }
+
+  return {
+    recipe_name: String(recipe.recipe_name ?? "Receita Gastronom.IA").trim(),
+    difficulty: String(recipe.difficulty ?? "Medio").trim(),
+    prep_time: String(recipe.prep_time ?? "15 min").trim(),
+    cook_time: String(recipe.cook_time ?? "20 min").trim(),
+    servings: Number(recipe.servings ?? 2) || 2,
+    dietary_tags: Array.isArray(recipe.dietary_tags)
+      ? recipe.dietary_tags.map((tag) => String(tag)).filter(Boolean)
+      : [],
+    ingredients,
+    steps,
+    calories_total: Number(recipe.calories_total ?? 0) || 0,
+    nutrition_info: String(recipe.nutrition_info ?? "").trim(),
+    chef_tips: String(recipe.chef_tips ?? "").trim(),
+    substitutions_made: String(recipe.substitutions_made ?? "").trim(),
+  };
+}
+
+function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
+  const mode = body.mode === "transform" ? "transform" : "generate";
+  const servings = typeof body.servings === "number" ? Math.min(Math.max(body.servings, 1), 20) : 2;
+  const description = typeof body.description === "string" ? body.description.trim().slice(0, 200) : "";
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  const complexity = typeof body.complexity === "string" ? body.complexity.trim() : "";
+  const filters = typeof body.filters === "object" && body.filters ? body.filters as Record<string, unknown> : {};
+  const existingRecipe = typeof body.existing_recipe === "string" ? body.existing_recipe.trim().slice(0, 5000) : "";
+  const nutritionProfile = typeof body.nutritionProfile === "object" && body.nutritionProfile
+    ? body.nutritionProfile as Record<string, unknown>
+    : null;
+
+  const activeFilters = [
+    filters.vegan ? "vegana" : null,
+    filters.glutenFree ? "sem gluten" : null,
+    filters.lactoseFree ? "sem lactose" : null,
+    body.dietMode === true ? "baixa caloria" : null,
+  ].filter(Boolean).join(", ");
+
+  const schema = `{
+  "recipe_name": "string",
+  "difficulty": "Facil | Medio | Dificil",
+  "prep_time": "string",
+  "cook_time": "string",
+  "servings": 2,
+  "dietary_tags": ["string"],
+  "ingredients": [
+    { "name": "string", "quantity": "string", "calories": 0, "tip": "string" }
+  ],
+  "steps": [
+    { "step_number": 1, "title": "string", "description": "string", "duration": "string", "tip": "string" }
+  ],
+  "calories_total": 0,
+  "nutrition_info": "string",
+  "chef_tips": "string",
+  "substitutions_made": "string"
+}`;
+
+  const systemPrompt = [
+    "Voce e um chef profissional brasileiro do app Gastronom.IA.",
+    "Responda sempre em portugues do Brasil.",
+    "Retorne apenas JSON valido, sem markdown e sem texto extra.",
+    "A receita deve ser saborosa, coerente e tecnicamente correta.",
+    "Todos os ingredientes citados no preparo devem existir na lista de ingredientes.",
+    "O preparo precisa ter pelo menos 4 passos completos.",
+    "Informe calorias realistas e um resumo nutricional por porcao.",
+  ].join(" ");
+
+  if (mode === "transform") {
+    return {
+      systemPrompt,
+      userPrompt: [
+        "Transforme a receita abaixo e devolva no schema pedido.",
+        existingRecipe ? `Receita base: ${existingRecipe}` : "",
+        activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
+        category ? `Categoria desejada: ${category}.` : "",
+        complexity ? `Complexidade desejada: ${complexity}.` : "",
+        `Rendimento obrigatorio: ${servings} porcoes.`,
+        `Schema JSON: ${schema}`,
+      ].filter(Boolean).join("\n\n"),
+    };
+  }
+
+  if (nutritionProfile) {
+    const allergies = Array.isArray(nutritionProfile.allergies)
+      ? (nutritionProfile.allergies as unknown[]).map((item) => String(item)).filter(Boolean)
+      : [];
+
+    return {
+      systemPrompt,
+      userPrompt: [
+        "Crie uma receita personalizada para o seguinte perfil nutricional.",
+        `Ingredientes prioritarios: ${ingredients.join(", ") || "livre"}.`,
+        description ? `Descricao do prato desejado: ${description}.` : "",
+        category ? `Tipo de prato: ${category}.` : "",
+        activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
+        allergies.length > 0 ? `Alergias proibidas: ${allergies.join(", ")}.` : "",
+        `Perfil: ${JSON.stringify(nutritionProfile)}.`,
+        `Rendimento obrigatorio: ${servings} porcoes.`,
+        `Schema JSON: ${schema}`,
+      ].filter(Boolean).join("\n\n"),
+    };
+  }
+
+  return {
+    systemPrompt,
+    userPrompt: [
+      "Crie uma receita completa usando os ingredientes abaixo.",
+      `Ingredientes: ${ingredients.join(", ")}.`,
+      description ? `Descricao do prato desejado: ${description}.` : "",
+      category ? `Categoria desejada: ${category}.` : "",
+      complexity ? `Complexidade desejada: ${complexity}.` : "",
+      activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
+      `Rendimento obrigatorio: ${servings} porcoes.`,
+      `Schema JSON: ${schema}`,
+    ].filter(Boolean).join("\n\n"),
+  };
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    const customToken = req.headers.get('x-user-jwt');
-    const bearer = customToken ? `Bearer ${customToken}` : authHeader;
+    const bearer = getBearerToken(req);
     if (!bearer) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: "Nao autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '', { global: { headers: { Authorization: bearer } } });
+
+    const supabaseClient = buildSupabaseClient(bearer);
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: "Nao autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const body = await req.json();
-    const { ingredients, mode, filters, existing_recipe, category, complexity, servings, nutritionMode, nutritionProfile, description, dishType, dietMode } = body;
+    const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+    const ingredients = sanitizeItems(body.ingredients);
+    const mode = body.mode === "transform" ? "transform" : "generate";
+    const nutritionMode = body.nutritionMode === true;
 
-    const isTransform = mode === 'transform';
-    const isNutritionMode = nutritionMode === true;
-
-    let sanitizedIngredients: string[] = [];
-
-    if (!isTransform && !isNutritionMode) {
-      if (!ingredients || !Array.isArray(ingredients) || ingredients.length < 2) {
-        return new Response(
-          JSON.stringify({ error: 'Envie pelo menos 2 ingredientes' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      sanitizedIngredients = ingredients
-        .filter((ing: unknown) => typeof ing === 'string')
-        .map((ing: string) => ing.trim().replace(/[^\p{L}\p{N}\s\-,.'()áàâãéèêíïóôõúüçñ]/gu, ''))
-        .filter((ing: string) => ing.length > 0 && ing.length <= 100)
-        .slice(0, 20);
-
-      if (sanitizedIngredients.length < 2) {
-        return new Response(
-          JSON.stringify({ error: 'Ingredientes inválidos' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (mode !== "transform" && !nutritionMode && ingredients.length < 2) {
+      return new Response(JSON.stringify({ error: "Envie pelo menos 2 ingredientes" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    if (isTransform) {
-      if (!existing_recipe || typeof existing_recipe !== 'string') {
-        return new Response(
-          JSON.stringify({ error: 'Envie a receita para transformar' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (existing_recipe.length > 5000) {
-        return new Response(
-          JSON.stringify({ error: 'Receita muito longa' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    const googleAiKey = Deno.env.get("GOOGLE_AI_KEY");
+    if (!googleAiKey) {
+      return new Response(JSON.stringify({ error: "GOOGLE_AI_KEY nao configurada" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const allowedCategories = ['salada', 'sobremesa', 'salgado', 'lanche', 'sopa', 'molho'];
-    const allowedComplexities = ['simples', 'media', 'elaborada'];
-    const safeCategory = (typeof category === 'string' && allowedCategories.includes(category)) ? category : null;
-    const safeComplexity = (typeof complexity === 'string' && allowedComplexities.includes(complexity)) ? complexity : null;
+    const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
+    const model = "gemini-2.5-flash-lite";
 
-    const GOOGLE_AI_KEY = Deno.env.get('GOOGLE_AI_KEY');
-    if (!GOOGLE_AI_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'GOOGLE_AI_KEY não configurada' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const activeFilters: string[] = [];
-    if (filters?.vegan) activeFilters.push('VEGANA (sem nenhum ingrediente de origem animal)');
-    if (filters?.glutenFree) activeFilters.push('SEM GLÚTEN (substitua qualquer ingrediente com glúten por alternativas sem glúten)');
-    if (filters?.lactoseFree) activeFilters.push('SEM LACTOSE (substitua qualquer ingrediente com lactose por alternativas sem lactose)');
-
-    const categoryMap: Record<string, string> = {
-      salada: 'SALADA GOURMET — Prato fresco e sofisticado com base em folhas nobres, vegetais grelhados ou crus, proteínas leves, molhos autorais.',
-      sobremesa: 'SOBREMESA/DOCE DE CONFEITARIA — Receita doce elaborada como bolo, torta, mousse, pudim, cheesecake, brownie.',
-      salgado: 'PRATO PRINCIPAL SALGADO — Refeição completa e substanciosa como risoto, massa, carne assada, estrogonofe, moqueca.',
-      lanche: 'LANCHE ELABORADO — Sanduíche gourmet, hambúrguer artesanal, wrap recheado, bruschetta, panini.',
-      sopa: 'SOPA OU CALDO — Sopa cremosa, caldo nutritivo, consomê, velouté, minestrone ou similar.',
-      molho: 'MOLHO GOURMET — Molho sofisticado como pesto, chimichurri, beurre blanc, redução de vinho, molho de ervas, vinagrete especial, aioli, etc.',
-    };
-
-    const categoryInstruction = safeCategory && categoryMap[safeCategory]
-      ? `\n\nCATEGORIA OBRIGATÓRIA: A receita DEVE ser do tipo ${categoryMap[safeCategory]}. Não crie uma receita de outra categoria.`
-      : '';
-
-    const complexityMap: Record<string, string> = {
-      simples: 'RECEITA SIMPLES — Poucos ingredientes, preparo rápido (até 20 min), técnicas básicas.',
-      media: 'RECEITA DE COMPLEXIDADE MÉDIA — Ingredientes variados, preparo moderado (20-45 min).',
-      elaborada: 'RECEITA ELABORADA — Ingredientes sofisticados, preparo demorado (45+ min), técnicas avançadas.',
-    };
-
-    const complexityInstruction = safeComplexity && complexityMap[safeComplexity]
-      ? `\n\nCOMPLEXIDADE OBRIGATÓRIA: ${complexityMap[safeComplexity]}`
-      : '';
-
-    const filterInstructions = activeFilters.length > 0
-      ? `\n\nFILTROS OBRIGATÓRIOS - A receita DEVE ser:\n${activeFilters.map(f => `- ${f}`).join('\n')}\nSubstitua ingredientes incompatíveis por alternativas adequadas.`
-      : '';
-
-    let prompt: string;
-
-    // Handle optional description for normal mode
-    const safeDescriptionNormal = typeof description === 'string' && description.trim().length > 0
-      ? description.trim().substring(0, 200)
-      : null;
-
-    const chefPersona = `Você é um chef profissional com formação em gastronomia clássica brasileira e internacional. Gere receitas tecnicamente corretas seguindo estas regras obrigatórias:
-
-ORDEM LÓGICA DOS PASSOS (sempre nesta sequência):
-1. Mise en place (lavar, cortar, separar ingredientes)
-2. Base aromática (alho, cebola — refogar na gordura)
-3. Proteínas e carnes curadas (dourar antes dos vegetais)
-4. Vegetais por tempo de cozimento (duros primeiro, macios depois)
-5. Líquidos e caldos (adicionar na própria panela, nunca separado)
-6. Finalização (creme de leite, requeijão, iogurte — sempre fora do fogo)
-7. Ervas frescas (coentro, salsinha, manjericão, cebolinha — sempre no final)
-8. Ajuste de sal e pimenta (sempre por último)
-
-REGRAS POR TIPO DE PRATO:
-
-SALADA:
-- Molho sempre separado, adicionado na hora de servir
-- Ingredientes quentes devem esfriar antes de montar
-- Nunca cozinhar folhas verdes
-
-DOCE:
-- Indicar ponto correto (fio, bala, caramelo)
-- Manteiga em temperatura ambiente quando necessário
-- Chocolate sempre derretido em banho-maria ou micro-ondas em pulsos
-- Nunca ferver creme de leite fresco em fogo alto
-
-SALGADO:
-- Seguir a ordem lógica completa acima
-- Carnes sempre seladas antes de adicionar outros ingredientes
-
-LANCHE:
-- Indicar temperatura correta de grelha/chapa/forno
-- Queijo sempre adicionado no final para derreter com calor residual
-- Pão sempre na chapa ou forno antes de montar
-
-SOPA:
-- Dourar proteína/bacon primeiro, reservar
-- Refogar base aromática na gordura resultante
-- Adicionar vegetais do mais duro ao mais macio
-- Caldo direto na panela, nunca aquecido separadamente
-- Creme de leite sempre no final, fogo desligado
-- Ervas frescas só na hora de servir
-
-MOLHO:
-- Indicar o tipo base (bechamel, tomate, redução, vinagrete)
-- Nunca ferver molhos com creme de leite — reduzir em fogo baixo
-- Acertar sal e acidez sempre no final
-- Especificar consistência esperada
-
-PROIBIDO EM QUALQUER RECEITA:
-- Ervas frescas no meio do cozimento
-- Creme de leite ou requeijão em fogo alto
-- Ingrediente nos passos que não está na lista de ingredientes
-- Ingrediente na lista que não aparece nos passos
-- Etapas desnecessárias em panelas separadas
-- Passos fora de ordem culinária lógica
-- Tempo de preparo irreal para a técnica descrita
-
-IMPORTANTE SOBRE TÍTULOS DOS PASSOS:
-As categorias de etapas (mise en place, base aromática, proteínas e carnes curadas, vegetais por tempo de cozimento, líquidos e caldos, finalização, ervas frescas, ajuste de sal e pimenta) são guias INTERNOS de sequência e lógica.
-NUNCA use essas categorias como título dos passos. Cada passo DEVE ter um título CURTO e DESCRITIVO da ação real sendo executada naquela receita específica.
-Exemplos corretos: "Dourar o bacon", "Refogar os legumes", "Adicionar o caldo", "Finalizar com coentro", "Temperar e servir".
-Exemplos PROIBIDOS: "Mise en place", "Base aromática", "Proteínas e carnes curadas", "Vegetais por tempo de cozimento", "Líquidos e caldos", "Ervas frescas", "Ajuste de sal e pimenta".
-
-INFORMAÇÕES NUTRICIONAIS:
-- Calcular com base nas quantidades reais listadas
-- Dividir corretamente pelo número de porções
-- Informar por porção: calorias, proteínas, carboidratos, gorduras, fibras
-- Considerar o perfil do usuário e alergias quando disponível para ajustar ingredientes e porções`;
-
-    if (isTransform) {
-      prompt = `${chefPersona}
-
-Transforme a seguinte receita aplicando os filtros dietéticos:
-
-RECEITA ORIGINAL:
-${existing_recipe}
-${filterInstructions}
-
-REGRAS IMPORTANTES:
-- Crie um NOVO NOME criativo para a receita transformada
-- MANTENHA A MESMA CATEGORIA da receita original
-
-Retorne exclusivamente em JSON válido, sem texto adicional.`;
-    } else if (isNutritionMode && nutritionProfile) {
-      const np = nutritionProfile;
-      const allergiesText = np.allergies?.length > 0
-        ? `\n\nALERGIAS E RESTRIÇÕES OBRIGATÓRIAS — A receita NÃO PODE conter nenhum dos seguintes alérgenos:\n${np.allergies.map((a: string) => `- ${a}`).join('\n')}`
-        : '';
-      const goalMap: Record<string, string> = {
-        weight_loss: 'PERDA DE PESO — receita com baixo teor calórico, rica em fibras e proteínas magras',
-        muscle_gain: 'GANHO DE MASSA MUSCULAR — receita hiperproteica com carboidratos complexos',
-        maintenance: 'MANUTENÇÃO — receita balanceada em macronutrientes',
-        general_health: 'SAÚDE GERAL — receita nutritiva, variada e equilibrada',
-      };
-      const goalText = goalMap[np.goal] || goalMap['general_health'];
-
-      // Handle optional user ingredients
-      const userIngredients = Array.isArray(ingredients) && ingredients.length > 0
-        ? ingredients.filter((i: unknown) => typeof i === 'string' && (i as string).trim().length > 0)
-        : [];
-      const ingredientsInstruction = userIngredients.length > 0
-        ? `\n\nINGREDIENTES SOLICITADOS PELO USUÁRIO (use obrigatoriamente estes ingredientes na receita, adicionando outros conforme necessário):\n${userIngredients.join(', ')}`
-        : '';
-
-      // Handle optional description
-      const safeDescription = typeof description === 'string' && description.trim().length > 0
-        ? description.trim().substring(0, 200)
-        : null;
-      const descriptionInstruction = safeDescription
-        ? `\n\nDESCRIÇÃO DO PRATO DESEJADO PELO USUÁRIO: "${safeDescription}"\nCrie a receita inspirada nesta descrição, adaptando-a ao perfil nutricional do usuário.`
-        : '';
-
-      // Handle dish type in nutrition mode
-      const safeDishType = typeof dishType === 'string' && allowedCategories.includes(dishType) ? dishType : null;
-      const dishTypeInstruction = safeDishType && categoryMap[safeDishType]
-        ? `\n\nTIPO DE PRATO OBRIGATÓRIO: ${categoryMap[safeDishType]}`
-        : '';
-
-      prompt = `${chefPersona}
-
-Crie uma receita PERSONALIZADA para o seguinte perfil nutricional:
-- Sexo: ${np.sex === 'male' ? 'Masculino' : 'Feminino'}
-- Idade: ${np.age} anos
-- Peso: ${np.weight_kg} kg
-- Altura: ${np.height_cm} cm
-- TDEE (calorias diárias): ${Math.round(np.tdee)} kcal
-- Objetivo: ${goalText}
-${allergiesText}${ingredientsInstruction}${descriptionInstruction}${dishTypeInstruction}
-
-A receita deve ter calorias proporcionais ao TDEE do usuário (aproximadamente 1/3 do TDEE para uma refeição principal).
-Deve ser uma refeição completa, saborosa e que atenda ao objetivo nutricional do usuário.
-
-Retorne exclusivamente em JSON válido, sem texto adicional.`;
-    } else {
-      const safeServings = (typeof servings === 'number' && servings >= 1 && servings <= 20) ? servings : 2;
-      const descInstructionNormal = safeDescriptionNormal
-        ? `\n\nDESCRIÇÃO DO PRATO DESEJADO PELO USUÁRIO: "${safeDescriptionNormal}"\nCrie a receita inspirada nesta descrição usando os ingredientes fornecidos.`
-        : '';
-      const dietInstruction = dietMode === true
-        ? `\n\nMODO DIETA ATIVADO — REGRAS OBRIGATÓRIAS:
-- A receita DEVE ser leve, saudável e com baixa caloria
-- Priorizar métodos de cocção saudáveis: grelhar, assar, cozinhar no vapor, refogar com pouca gordura
-- Evitar frituras, excesso de manteiga, creme de leite integral e queijos gordurosos
-- Substituir ingredientes calóricos por versões mais leves (ex: creme de leite → iogurte natural, queijo → ricota, açúcar → adoçante culinário)
-- Aumentar proporção de vegetais, folhas e fibras
-- Reduzir porções de carboidratos refinados
-- O total calórico da receita deve ficar o mais baixo possível sem comprometer o sabor
-- Indicar claramente no campo nutrition_info que é uma receita de dieta`
-        : '';
-      prompt = `${chefPersona}
-
-Com base nos seguintes ingredientes:
-${sanitizedIngredients.join(', ')}
-${categoryInstruction}${complexityInstruction}${filterInstructions}${descInstructionNormal}${dietInstruction}
-
-NÚMERO DE PORÇÕES OBRIGATÓRIO: A receita DEVE render exatamente ${safeServings} porção(ões).
-
-Crie apenas UMA receita completa e MUITO detalhada.
-
-Retorne exclusivamente em JSON válido, sem texto adicional.`;
-    }
-
-    prompt += `
-
-Formato obrigatório:
-
-{
-  "recipe_name": "",
-  "difficulty": "Fácil" | "Médio" | "Difícil",
-  "prep_time": "",
-  "cook_time": "",
-  "servings": 0,
-  "dietary_tags": [],
-  "ingredients": [
-    { "name": "", "quantity": "", "calories": 0, "tip": "" }
-  ],
-  "steps": [
-    { "step_number": 1, "title": "", "description": "", "duration": "", "tip": "" }
-  ],
-  "calories_total": 0,
-  "nutrition_info": "",
-  "chef_tips": "",
-  "substitutions_made": ""
-}
-
-Regras:
-- Criar nome criativo e atraente
-- A receita deve ser ELABORADA e SABOROSA
-- Estimar calorias realistas por ingrediente
-- O campo "steps" deve ter pelo menos 4-6 passos detalhados
-- Incluir tempo de preparo e cozimento
-- O campo "nutrition_info" deve detalhar macronutrientes
-- Não escrever nada fora do JSON`;
-
-    // Split prompt into system instruction and user content
-    const systemPrompt = chefPersona;
-    const userContent = prompt.replace(chefPersona, '').trim();
-
-    const MODEL = 'gemini-2.5-flash-lite';
     const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GOOGLE_AI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(60000),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: userContent }] }],
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { temperature: 0.7, maxOutputTokens: 8000 },
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
+          },
         }),
-      }
+      },
     );
 
     if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error('Google AI error:', aiResponse.status, errText);
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente em alguns instantes.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-      return new Response(
-        JSON.stringify({ error: 'Erro ao gerar receita, tente novamente' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const errorText = await aiResponse.text();
+      console.error("Google AI error:", aiResponse.status, errorText);
+      return new Response(JSON.stringify({ error: "Erro ao gerar receita" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await aiResponse.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const rawText = data.candidates?.[0]?.content?.parts
+      ?.map((part: { text?: string }) => part.text ?? "")
+      .join("")
+      .trim();
 
-    function extractJsonFromResponse(raw: string): Record<string, unknown> {
-      let cleaned = raw
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
-
-      const jsonStart = cleaned.indexOf('{');
-      const jsonEnd = cleaned.lastIndexOf('}');
-
-      if (jsonStart === -1 || jsonEnd === -1) {
-        console.error('No JSON found:', cleaned.substring(0, 300));
-        throw new Error('No JSON object found');
-      }
-
-      cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-
-      try {
-        return JSON.parse(cleaned);
-      } catch (_e) {
-        cleaned = cleaned
-          .replace(/,\s*}/g, '}')
-          .replace(/,\s*]/g, ']')
-          .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\r' || ch === '\t' ? ch : '')
-          .replace(/\n/g, ' ')
-          .replace(/\t/g, ' ');
-
-        try {
-          return JSON.parse(cleaned);
-        } catch (repairErr) {
-          console.error('JSON repair failed:', repairErr, 'Raw:', cleaned.substring(0, 500));
-          throw repairErr;
-        }
-      }
+    if (!rawText) {
+      return new Response(JSON.stringify({ error: "A IA nao retornou receita" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    let recipe: Record<string, unknown>;
-    try {
-      recipe = extractJsonFromResponse(content);
-    } catch (_parseErr) {
-      return new Response(
-        JSON.stringify({ error: 'A IA retornou dados inválidos. Tente novamente.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const parsed = parseJsonPayload(rawText);
+    const normalized = normalizeRecipe(parsed);
 
-    return new Response(
-      JSON.stringify(recipe),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (err) {
-    console.error('Error:', err);
-    return new Response(
-      JSON.stringify({ error: 'Erro interno' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify(normalized), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro interno";
+    console.error("generate-recipe error:", message);
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

@@ -12,22 +12,34 @@ type ChatMessage = {
   content: string;
 };
 
-function buildSseChunk(content: string) {
-  return `data: ${JSON.stringify({
-    choices: [{ delta: { content } }],
-  })}\n\n`;
+function getBearerToken(req: Request) {
+  const customToken = req.headers.get("x-user-jwt");
+  if (customToken) return `Bearer ${customToken}`;
+  return req.headers.get("Authorization");
 }
 
-function splitIntoChunks(text: string) {
+function buildSupabaseClient(bearer: string) {
+  return createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: bearer } } },
+  );
+}
+
+function buildChunk(content: string) {
+  return `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`;
+}
+
+function splitText(text: string) {
   return text
     .split(/(\s+)/)
     .filter(Boolean)
-    .reduce<string[]>((chunks, piece) => {
+    .reduce<string[]>((chunks, part) => {
       const current = chunks[chunks.length - 1] ?? "";
-      if (!current || current.length + piece.length > 80) {
-        chunks.push(piece);
+      if (!current || current.length + part.length > 90) {
+        chunks.push(part);
       } else {
-        chunks[chunks.length - 1] = current + piece;
+        chunks[chunks.length - 1] = current + part;
       }
       return chunks;
     }, []);
@@ -39,9 +51,7 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    const customToken = req.headers.get("x-user-jwt");
-    const bearer = customToken ? `Bearer ${customToken}` : authHeader;
+    const bearer = getBearerToken(req);
     if (!bearer) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
         status: 401,
@@ -49,17 +59,8 @@ serve(async (req) => {
       });
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: bearer } } },
-    );
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
-
+    const supabaseClient = buildSupabaseClient(bearer);
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
         status: 401,
@@ -67,16 +68,27 @@ serve(async (req) => {
       });
     }
 
-    const { messages, recipe_context } = await req.json();
+    const body = await req.json().catch(() => ({})) as {
+      messages?: ChatMessage[];
+      recipe_context?: {
+        name?: string;
+        ingredients?: string;
+        preparation?: string;
+        calories?: number | string;
+      };
+    };
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    const messages = Array.isArray(body.messages) ? body.messages.slice(-10) : [];
+    const recipeContext = body.recipe_context ?? {};
+
+    if (messages.length === 0) {
       return new Response(JSON.stringify({ error: "Envie ao menos uma mensagem" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!recipe_context || !recipe_context.name) {
+    if (!recipeContext.name) {
       return new Response(JSON.stringify({ error: "Contexto da receita e obrigatorio" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -91,45 +103,19 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `Voce e o Gastronom.IA, um chef virtual especialista em gastronomia. Voce esta ajudando o usuario com uma receita especifica.
+    const systemPrompt = [
+      "Voce e o Gastronom.IA, um chef virtual especialista em gastronomia.",
+      `A receita atual e: ${recipeContext.name}.`,
+      `Ingredientes atuais: ${recipeContext.ingredients ?? "nao informados"}.`,
+      `Modo de preparo atual: ${recipeContext.preparation ?? "nao informado"}.`,
+      "Responda sempre em portugues do Brasil.",
+      "Foque em duvidas sobre a receita atual, tecnicas culinarias, substituicoes de ingredientes e gastronomia.",
+      "Se o usuario pedir substituicao de ingrediente, inclua no final uma linha no formato <<<SUBSTITUIR: ingrediente_original >>> ingrediente_novo>>> quando a troca fizer sentido.",
+      "Se a pergunta nao tiver relacao com culinaria ou com a receita, recuse de forma educada.",
+      "Seja objetivo e util.",
+    ].join(" ");
 
-RECEITA ATUAL:
-- Nome: ${recipe_context.name}
-- Ingredientes: ${recipe_context.ingredients || "nao informados"}
-- Modo de Preparo: ${recipe_context.preparation || "nao informado"}
-- Calorias: ${recipe_context.calories || "nao informado"} kcal
-
-REGRAS ABSOLUTAS:
-1. Voce SOMENTE pode responder perguntas relacionadas a:
-   - Esta receita especifica (${recipe_context.name})
-   - Substituicoes de ingredientes DESTA receita
-   - Tecnicas culinarias usadas NESTA receita
-   - Dicas para melhorar ESTA receita
-   - Informacoes nutricionais DESTA receita
-   - Variacoes e adaptacoes DESTA receita
-   - Perguntas gerais sobre gastronomia e culinaria
-
-2. Se o usuario perguntar sobre QUALQUER assunto que NAO seja relacionado a esta receita ou gastronomia (por exemplo: fazer papel, programacao, matematica, historia nao-culinaria, etc.), voce DEVE responder EXATAMENTE:
-   "Opa! Sou o Gastronom.IA e so posso te ajudar com assuntos relacionados a receita de ${recipe_context.name} e gastronomia em geral! Me pergunta algo sobre o prato ou culinaria que eu te ajudo!"
-
-3. Nao tente interpretar palavras ambiguas como receitas ou alimentos. Se alguem pedir "papel", "caneta", "carro", ou qualquer coisa claramente nao-culinaria, recuse educadamente.
-4. Sempre responda em portugues brasileiro.
-5. Use emojis de comida ocasionalmente.
-6. Seja conciso mas informativo.
-
-SUBSTITUICAO DE INGREDIENTES:
-Quando o usuario pedir para trocar/substituir um ingrediente desta receita:
-- O novo ingrediente DEVE ser comestivel. Se nao for comestivel, recuse e explique.
-- Avalie se a combinacao fica boa. Se nao ficar ideal, aceite a troca mas de uma dica de como melhorar.
-- SEMPRE inclua no final da sua resposta uma linha especial no formato exato:
-  <<<SUBSTITUIR: ingrediente_original >>> ingrediente_novo>>>
-- Use o nome exato do ingrediente original como aparece na lista de ingredientes da receita.
-- Inclua APENAS UMA substituicao por mensagem.
-- Se a combinacao for ruim, ainda faca a substituicao mas avise o usuario com uma dica.
-- Se o ingrediente solicitado NAO for comestivel (ex: papel, plastico, madeira), NAO faca a substituicao e avise que so aceita ingredientes comestiveis.`;
-
-    const recentMessages = (messages as ChatMessage[]).slice(-10);
-    const contents = recentMessages.map((message) => ({
+    const contents = messages.map((message) => ({
       role: message.role === "assistant" ? "model" : "user",
       parts: [{ text: message.content }],
     }));
@@ -151,9 +137,9 @@ Quando o usuario pedir para trocar/substituir um ingrediente desta receita:
     );
 
     if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("Google AI error:", aiResponse.status, errText);
-      return new Response(JSON.stringify({ error: "Erro na API de IA" }), {
+      const errorText = await aiResponse.text();
+      console.error("Google AI error:", aiResponse.status, errorText);
+      return new Response(JSON.stringify({ error: "Erro na IA" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -175,8 +161,8 @@ Quando o usuario pedir para trocar/substituir um ingrediente desta receita:
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        for (const chunk of splitIntoChunks(answer)) {
-          controller.enqueue(encoder.encode(buildSseChunk(chunk)));
+        for (const chunk of splitText(answer)) {
+          controller.enqueue(encoder.encode(buildChunk(chunk)));
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
@@ -191,9 +177,10 @@ Quando o usuario pedir para trocar/substituir um ingrediente desta receita:
         "Content-Type": "text/event-stream",
       },
     });
-  } catch (err) {
-    console.error("chef-chat error:", err);
-    return new Response(JSON.stringify({ error: "Erro interno" }), {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro interno";
+    console.error("chef-chat error:", message);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
