@@ -7,7 +7,8 @@ import {
 
 type LogStep = (step: string, details?: Record<string, unknown>) => void;
 
-const DEFAULT_ORIGIN = "https://gastronom-iaa.lovable.app";
+// O DEFAULT_ORIGIN é usado como fallback caso o checkout seja iniciado sem o header origin.
+const DEFAULT_ORIGIN = "https://app.gastronomia.com.br";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

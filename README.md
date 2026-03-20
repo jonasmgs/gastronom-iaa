@@ -78,3 +78,17 @@ npx supabase functions deploy check-subscription --no-verify-jwt
 npx supabase functions deploy create-checkout --no-verify-jwt
 npx supabase functions deploy customer-portal --no-verify-jwt
 ```
+
+## Publicação Mobile (Android)
+
+Para gerar o arquivo AAB para a Google Play, siga estas etapas:
+
+1.  **Build do Frontend**: `npm run build`
+2.  **Sync do Capacitor**: `npx cap sync android`
+3.  **Configuração do Keystore**: Garanta que `android/key.properties` e `android/app/upload-keystore.jks` existam (não comitados).
+4.  **Gerar AAB**:
+    - Abrao Android Studio na pasta `android`.
+    - `Build > Generate Signed Bundle / APK...`
+    - Selecione `Android App Bundle`.
+    - Use as credenciais do `upload-keystore.jks`.
+5.  **Localização do Arquivo**: O AAB gerado estará em `android/app/build/outputs/bundle/release/app-release.aab`.
