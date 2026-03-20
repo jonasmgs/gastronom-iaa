@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Crown, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { getAndroidBillingUnavailableMessage, isNativeAndroid } from '@/lib/billing-platform';
+import {
+  getAndroidBillingUnavailableMessage,
+  isGooglePlayBillingConfigured,
+  isNativeAndroid,
+} from '@/lib/billing-platform';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -15,6 +19,7 @@ const SubscriptionPopup = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const androidNative = isNativeAndroid();
+  const androidBillingConfigured = isGooglePlayBillingConfigured();
 
   useEffect(() => {
     if (user) return;
@@ -74,11 +79,11 @@ const SubscriptionPopup = () => {
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="relative w-full max-w-sm rounded-3xl border border-primary/30 bg-card p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <button
               onClick={() => setVisible(false)}
-              className="absolute right-3 top-3 rounded-full p-1.5 text-muted-foreground hover:bg-accent transition-colors"
+              className="absolute right-3 top-3 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent"
             >
               <X className="h-4 w-4" />
             </button>
@@ -106,7 +111,7 @@ const SubscriptionPopup = () => {
               R$ 9,90<span className="text-sm font-normal text-muted-foreground">/mês</span>
             </p>
 
-            {androidNative ? (
+            {androidNative && !androidBillingConfigured ? (
               <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                 {getAndroidBillingUnavailableMessage()}
               </div>
@@ -117,7 +122,7 @@ const SubscriptionPopup = () => {
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.97] disabled:opacity-50"
               >
                 {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
-                {t('subscription.subscribe')}
+                {androidNative ? 'Assinar no Google Play' : t('subscription.subscribe')}
               </button>
             )}
 
@@ -132,7 +137,7 @@ const SubscriptionPopup = () => {
 
             <button
               onClick={() => setVisible(false)}
-              className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="mt-3 w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               {t('subscription.maybeLater', 'Talvez depois')}
             </button>

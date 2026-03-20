@@ -8,7 +8,11 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
-import { getAndroidBillingUnavailableMessage, isNativeAndroid } from '@/lib/billing-platform';
+import {
+  getAndroidBillingUnavailableMessage,
+  isGooglePlayBillingConfigured,
+  isNativeAndroid,
+} from '@/lib/billing-platform';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import {
@@ -36,6 +40,7 @@ const Settings = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const androidNative = isNativeAndroid();
+  const androidBillingConfigured = isGooglePlayBillingConfigured();
 
   useEffect(() => {
     const checkout = searchParams.get('checkout');
@@ -91,9 +96,20 @@ const Settings = () => {
     }
   };
 
-  const handleTheme = (mode: ThemeMode) => { setTheme(mode); setCurrentTheme(mode); };
-  const handleSize = (size: FontSize) => { setFontSize(size); setCurrentSize(size); };
-  const handleFont = (font: FontFamily) => { setFontFamily(font); setCurrentFont(font); };
+  const handleTheme = (mode: ThemeMode) => {
+    setTheme(mode);
+    setCurrentTheme(mode);
+  };
+
+  const handleSize = (size: FontSize) => {
+    setFontSize(size);
+    setCurrentSize(size);
+  };
+
+  const handleFont = (font: FontFamily) => {
+    setFontFamily(font);
+    setCurrentFont(font);
+  };
 
   const themeOptions: { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
     { value: 'light', label: t('settings.light'), icon: <Sun className="h-4 w-4" /> },
@@ -156,7 +172,7 @@ const Settings = () => {
                   {t('subscription.activeUntil') || 'Ativo ate'}{' '}
                   {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : '-'}
                 </p>
-                {androidNative ? (
+                {androidNative && !androidBillingConfigured ? (
                   <p className="text-xs text-muted-foreground">
                     {getAndroidBillingUnavailableMessage()}
                   </p>
@@ -167,7 +183,7 @@ const Settings = () => {
                       className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.97]"
                     >
                       <CreditCard className="h-4 w-4" />
-                      {t('subscription.manage') || 'Gerenciar'}
+                      {androidNative ? 'Gerenciar no Google Play' : t('subscription.manage') || 'Gerenciar'}
                     </button>
                     <button
                       onClick={() => void checkSubscription()}
@@ -188,14 +204,14 @@ const Settings = () => {
                   {t('subscription.description') || 'Receitas ilimitadas, livro PDF, chat com chef IA'}
                 </p>
                 <p className="text-2xl font-bold text-foreground">
-                  R$ 9,90<span className="text-sm font-normal text-muted-foreground">/mes</span>
+                  R$ 9,90<span className="text-sm font-normal text-muted-foreground">/mês</span>
                 </p>
                 <ul className="space-y-1.5 text-sm text-muted-foreground">
                   <li>Receitas ilimitadas</li>
                   <li>Livro de receitas em PDF</li>
-                  <li>Chat com chef IA (100/mes)</li>
+                  <li>Chat com chef IA (100/mês)</li>
                 </ul>
-                {androidNative ? (
+                {androidNative && !androidBillingConfigured ? (
                   <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                     {getAndroidBillingUnavailableMessage()}
                   </div>
@@ -206,7 +222,7 @@ const Settings = () => {
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.97] disabled:opacity-50"
                   >
                     {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
-                    {t('subscription.subscribe') || 'Assinar agora'}
+                    {androidNative ? 'Assinar no Google Play' : t('subscription.subscribe') || 'Assinar agora'}
                   </button>
                 )}
               </div>
