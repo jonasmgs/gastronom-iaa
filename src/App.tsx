@@ -17,6 +17,9 @@ import EditRecipe from "./pages/EditRecipe";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import { inject } from '@vercel/analytics';
+
+inject();
 
 const queryClient = new QueryClient();
 
