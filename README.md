@@ -92,3 +92,59 @@ Para gerar o arquivo AAB para a Google Play, siga estas etapas:
     - Selecione `Android App Bundle`.
     - Use as credenciais do `upload-keystore.jks`.
 5.  **Localização do Arquivo**: O AAB gerado estará em `android/app/build/outputs/bundle/release/app-release.aab`.
+
+## Testes
+
+### Testes Unitários
+
+```sh
+npm run test
+```
+
+### Testes E2E (Playwright)
+
+1. Instalar browsers:
+```sh
+npm run install:playwright
+```
+
+2. Rodar testes:
+```sh
+npm run test:e2e
+```
+
+3. Modo UI:
+```sh
+npm run test:e2e:ui
+```
+
+## CI/CD
+
+O projeto usa GitHub Actions com os seguintes workflows:
+
+### Secrets Necessários (GitHub)
+
+```
+VERCEL_TOKEN=
+VERCEL_ORG_ID=
+VERCEL_PROJECT_ID=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_STRIPE_PUBLISHABLE_KEY=
+```
+
+### Pipeline
+
+1. **Lint & Test** - ESLint + Vitest
+2. **Build** - Vite build
+3. **E2E Tests** - Playwright (opcional em PRs)
+4. **Deploy** - Vercel (apenas em main)
+
+## Single Device Login
+
+O app impede login simultâneo em múltiplos dispositivos:
+
+- Ao fazer login, um session_token único é gerado
+- O token é salvo localmente e no Supabase
+- Ao abrir em outro dispositivo, o anterior é desconectado
+- O guard de sessão valida a cada 30s e ao voltar ao app/aba

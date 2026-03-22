@@ -26,6 +26,7 @@ let initialized = false;
 let validationInterval: ReturnType<typeof setInterval> | null = null;
 let registerSessionPromise: Promise<string | null> | null = null;
 let registerSessionUserId: string | null = null;
+let lastValidationTime = 0;
 
 function generateSessionToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
@@ -204,6 +205,16 @@ function handleStorageChange(event: StorageEvent) {
   }
 }
 
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible' && authState.user && authState.sessionToken) {
+    const now = Date.now();
+    if (now - lastValidationTime > 10_000) {
+      lastValidationTime = now;
+      void validateSession(authState.user.id, authState.sessionToken);
+    }
+  }
+}
+
 async function handleAuthStateChange(event: string, session: Session | null) {
   if (event === 'SIGNED_OUT') {
     setStoredSessionToken(null);
@@ -238,6 +249,7 @@ async function initializeAuth() {
 
   if (typeof window !== 'undefined') {
     window.addEventListener('storage', handleStorageChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
   }
 
   supabase.auth.onAuthStateChange((event, session) => {
