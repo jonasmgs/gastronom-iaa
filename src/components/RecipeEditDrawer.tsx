@@ -4,13 +4,7 @@ import { X, Plus, Trash2, Loader2, Save, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface Ingredient {
-  name: string;
-  quantity: string;
-  calories: number;
-  tip?: string;
-}
+import type { Ingredient } from '@/types/recipe';
 
 interface RecipeEditDrawerProps {
   open: boolean;
@@ -68,7 +62,7 @@ const RecipeEditDrawer = ({
         .from('recipes')
         .update({
           recipe_name: name.trim(),
-          ingredients: ings.filter(i => i.name.trim()) as any,
+          ingredients: JSON.stringify(ings.filter(i => i.name.trim())),
           preparation: prep,
           calories_total: totalCalories,
         })
@@ -78,8 +72,9 @@ const RecipeEditDrawer = ({
       toast.success(t('recipe.saved'));
       onRecipeUpdated();
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || t('recipe.saveError'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('recipe.saveError');
+      toast.error(message);
     } finally {
       setSaving(false);
     }

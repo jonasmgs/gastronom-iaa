@@ -231,8 +231,9 @@ const RecipeBookGenerator = ({ recipes, userName }: Props) => {
 
       doc.save(`receitas-${userName || 'chef'}.pdf`);
       toast.success(t('book.generated'));
-    } catch (err: any) {
-      toast.error(err.message || t('common.error'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('common.error');
+      toast.error(message);
     } finally {
       setGenerating(false);
     }

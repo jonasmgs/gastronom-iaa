@@ -21,7 +21,7 @@ export function InstallPrompt() {
     if (window.matchMedia('(display-mode: standalone)').matches) return;
 
     const ua = navigator.userAgent;
-    const isiOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const isiOS = /iPad|iPhone|iPod/.test(ua) && !('MSStream' in window);
     setIsIOS(isiOS);
 
     if (isiOS) {

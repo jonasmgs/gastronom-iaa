@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, WheatOff, MilkOff, Loader2, Wand2, MessageCircle, Pencil } from 'lucide-react';
@@ -13,21 +13,7 @@ import RecipeEditDrawer from '@/components/RecipeEditDrawer';
 import bgUtensils from '@/assets/bg-utensils.jpg';
 import type { Tables } from '@/integrations/supabase/types';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
-
-interface Ingredient {
-  name: string;
-  quantity: string;
-  calories: number;
-  tip?: string;
-}
-
-interface Step {
-  step_number: number;
-  title: string;
-  description: string;
-  duration?: string;
-  tip?: string;
-}
+import type { Ingredient, RecipeGeneratorResponse, Step } from '@/types/recipe';
 
 interface RecipeMeta {
   nutrition_info?: string;
@@ -63,7 +49,7 @@ const RecipeResult = () => {
 
   usePageTitle(recipe?.recipe_name);
 
-  const fetchRecipe = async () => {
+  const fetchRecipe = useCallback(async () => {
     if (!id) return;
     const { data, error } = await supabase
       .from('recipes')
@@ -77,11 +63,11 @@ const RecipeResult = () => {
       setRecipe(data);
     }
     setLoading(false);
-  };
+  }, [id, navigate, t]);
 
   useEffect(() => {
     fetchRecipe();
-  }, [id]);
+  }, [fetchRecipe]);
 
   const handleShare = async () => {
     if (!recipe) return;
@@ -136,7 +122,7 @@ const RecipeResult = () => {
       const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
       const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${ingredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
 
-      const { data, error } = await invokeEdgeFunction<any>('recipe-generator', {
+      const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: { mode: 'transform', existing_recipe: existingText, filters },
         token: session?.access_token,
       });
@@ -144,15 +130,15 @@ const RecipeResult = () => {
 
       const transformed = data;
       const preparation = transformed.steps
-        ? transformed.steps.map((s: any) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
+        ? transformed.steps.map((s: Step) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
         : transformed.preparation || '';
 
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: transformed.recipe_name,
-        ingredients: transformed.ingredients,
+        ingredients: JSON.stringify(transformed.ingredients || []),
         preparation,
-        calories_total: transformed.calories_total,
+        calories_total: transformed.calories_total || 0,
         nutrition_info: JSON.stringify({
           nutrition_info: transformed.nutrition_info || '',
           chef_tips: transformed.chef_tips || '',
@@ -169,8 +155,9 @@ const RecipeResult = () => {
       if (saveErr) throw saveErr;
       toast.success(t('recipe.transformed'));
       navigate(`/recipe/${saved.id}`);
-    } catch (err: any) {
-      toast.error(err.message || t('recipe.transformError'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('recipe.transformError');
+      toast.error(message);
     } finally {
       setTransforming(false);
     }

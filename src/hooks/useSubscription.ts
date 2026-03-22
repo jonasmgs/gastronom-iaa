@@ -82,7 +82,7 @@ async function openBillingUrl(url: string) {
 }
 
 async function waitForGooglePlayPurchase(productId: string) {
-  return new Promise<void>(async (resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     let settled = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let listenerHandlePromise:
@@ -134,17 +134,19 @@ async function waitForGooglePlayPurchase(productId: string) {
       void settle(() => reject(new Error(event.message ?? 'O Google Play nao conseguiu concluir a compra.')));
     };
 
-    try {
-      listenerHandlePromise = GooglePlayBilling.addListener('purchaseUpdated', handleEvent);
-      await listenerHandlePromise;
-    } catch (error) {
-      await settle(() => reject(error instanceof Error ? error : new Error('Nao foi possivel ouvir atualizacoes do Google Play.')));
-      return;
-    }
+    (async () => {
+      try {
+        listenerHandlePromise = GooglePlayBilling.addListener('purchaseUpdated', handleEvent);
+        await listenerHandlePromise;
+      } catch (error) {
+        await settle(() => reject(error instanceof Error ? error : new Error('Nao foi possivel ouvir atualizacoes do Google Play.')));
+        return;
+      }
 
-    timeoutId = setTimeout(() => {
-      void settle(() => reject(new Error('O Google Play demorou muito para confirmar a compra. Tente novamente.')));
-    }, 90_000);
+      timeoutId = setTimeout(() => {
+        void settle(() => reject(new Error('O Google Play demorou muito para confirmar a compra. Tente novamente.')));
+      }, 90_000);
+    })();
   });
 }
 

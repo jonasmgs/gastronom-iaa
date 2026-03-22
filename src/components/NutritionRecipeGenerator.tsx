@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import RecipeFilters from '@/components/RecipeFilters';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import type { RecipeGeneratorResponse, Step } from '@/types/recipe';
 
 interface NutritionData {
   height_cm: number | '';
@@ -18,26 +19,6 @@ interface NutritionData {
   tdee: number;
 }
 
-interface Step {
-  step_number: number;
-  title: string;
-  description: string;
-  duration?: string;
-}
-
-interface GeneratedRecipe {
-  recipe_name: string;
-  ingredients: { name: string; quantity: string; calories: number }[];
-  steps: Step[];
-  calories_total: number;
-  nutrition_info?: string;
-  chef_tips?: string;
-  difficulty?: string;
-  prep_time?: string;
-  cook_time?: string;
-  servings?: number;
-}
-
 interface Props {
   nutritionData: NutritionData;
 }
@@ -47,7 +28,7 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
   const { user, session } = useAuth();
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
-  const [recipe, setRecipe] = useState<GeneratedRecipe | null>(null);
+  const [recipe, setRecipe] = useState<RecipeGeneratorResponse | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [description, setDescription] = useState('');
@@ -59,7 +40,7 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
     setGenerating(true);
     setRecipe(null);
     try {
-      const { data, error } = await invokeEdgeFunction<GeneratedRecipe>('recipe-generator', {
+      const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         token: session?.access_token,
         body: {
           ingredients: ingredients.length > 0 ? ingredients : [],
@@ -81,9 +62,10 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
         },
       });
       if (error) throw error;
-      setRecipe(data as GeneratedRecipe);
-    } catch (err: any) {
-      toast.error(err.message || t('common.error'));
+      setRecipe(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('common.error');
+      toast.error(message);
     } finally {
       setGenerating(false);
     }
@@ -99,9 +81,9 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
       const { data: saved, error } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: recipe.recipe_name,
-        ingredients: recipe.ingredients as any,
+        ingredients: JSON.stringify(recipe.ingredients || []),
         preparation,
-        calories_total: recipe.calories_total,
+        calories_total: recipe.calories_total || 0,
         nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
           chef_tips: recipe.chef_tips || '',
@@ -115,8 +97,9 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
       if (error) throw error;
       toast.success(t('recipe.saved'));
       navigate(`/recipe/${saved.id}`);
-    } catch (err: any) {
-      toast.error(err.message || t('common.error'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('common.error');
+      toast.error(message);
     } finally {
       setSaving(false);
     }

@@ -58,8 +58,9 @@ const Auth = () => {
         if (error) throw error;
         toast.success(t('auth.recoveryEmail'));
       }
-    } catch (err: any) {
-      toast.error(err.message || t('auth.unexpectedError'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('auth.unexpectedError');
+      toast.error(message);
     } finally {
       setLoading(false);
     }

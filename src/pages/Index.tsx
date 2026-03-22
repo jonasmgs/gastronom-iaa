@@ -15,6 +15,7 @@ import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
 import RecipeFilters from '@/components/RecipeFilters';
 import PaywallModal from '@/components/PaywallModal';
+import type { EdgeFunctionError, RecipeGeneratorResponse, Step } from '@/types/recipe';
 import bgIngredients from '@/assets/bg-ingredients.jpg';
 import bgIngredients2 from '@/assets/bg-ingredients-2.jpg';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
@@ -66,7 +67,7 @@ const Index = () => {
     setShowServingsModal(false);
     setGenerating(true);
     try {
-      const { data, error } = await invokeEdgeFunction<any>('recipe-generator', {
+      const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: { ingredients, category, complexity, servings, description: description.trim() || null, dietMode },
         token: session?.access_token,
       });
@@ -74,15 +75,15 @@ const Index = () => {
 
       const recipe = data;
       const preparation = recipe.steps
-        ? recipe.steps.map((s: any) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
+        ? recipe.steps.map((s: Step) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
         : recipe.preparation || '';
 
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: recipe.recipe_name,
-        ingredients: recipe.ingredients,
+        ingredients: JSON.stringify(recipe.ingredients || []),
         preparation,
-        calories_total: recipe.calories_total,
+        calories_total: recipe.calories_total || 0,
         nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
           chef_tips: recipe.chef_tips || '',
@@ -96,8 +97,9 @@ const Index = () => {
 
       if (saveErr) throw saveErr;
       navigate(`/recipe/${saved.id}`);
-    } catch (err: any) {
-      toast.error(err.message || t('home.errorGenerating'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('home.errorGenerating');
+      toast.error(message);
     } finally {
       setGenerating(false);
     }

@@ -10,6 +10,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
 import BottomNav from '@/components/BottomNav';
+import type { RecipeGeneratorResponse, Step } from '@/types/recipe';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
 
 interface DietaryFilters {
@@ -56,7 +57,7 @@ const EditRecipe = () => {
     if (!validate() || !user) return;
     setTransforming(true);
     try {
-      const { data, error } = await invokeEdgeFunction<any>('recipe-generator', {
+      const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: { mode: 'transform', existing_recipe: recipeText, filters },
         token: session?.access_token,
       });
@@ -64,15 +65,15 @@ const EditRecipe = () => {
 
       const recipe = data;
       const preparation = recipe.steps
-        ? recipe.steps.map((s: any) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
+        ? recipe.steps.map((s: Step) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
         : recipe.preparation || '';
 
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: recipe.recipe_name,
-        ingredients: recipe.ingredients,
+        ingredients: JSON.stringify(recipe.ingredients || []),
         preparation,
-        calories_total: recipe.calories_total,
+        calories_total: recipe.calories_total || 0,
         nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
           chef_tips: recipe.chef_tips || '',
@@ -90,8 +91,9 @@ const EditRecipe = () => {
       setTouched(false);
       toast.success(t('edit.transformed'));
       navigate(`/recipe/${saved.id}`);
-    } catch (err: any) {
-      toast.error(err.message || t('edit.transformError'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('edit.transformError');
+      toast.error(message);
     } finally {
       setTransforming(false);
     }

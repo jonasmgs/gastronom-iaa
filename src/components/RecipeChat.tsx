@@ -5,15 +5,9 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { Ingredient } from '@/types/recipe';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
-
-interface Ingredient {
-  name: string;
-  quantity: string;
-  calories: number;
-  tip?: string;
-}
 
 interface RecipeContext {
   name: string;
@@ -173,7 +167,7 @@ const RecipeChat = ({ recipe, recipeId, rawIngredients, open, onClose, onRecipeU
             if (changed) {
               const { error } = await supabase
                 .from('recipes')
-                .update({ ingredients: updatedIngredients as any })
+                .update({ ingredients: JSON.stringify(updatedIngredients) })
                 .eq('id', recipeId);
               if (!error) {
                 toast.success(t('chat.substituted', { name: newName }));
@@ -183,9 +177,10 @@ const RecipeChat = ({ recipe, recipeId, rawIngredients, open, onClose, onRecipeU
           }
         },
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e.message || t('chat.chatError'));
+      const message = e instanceof Error ? e.message : t('chat.chatError');
+      toast.error(message);
       setIsLoading(false);
     }
   };
