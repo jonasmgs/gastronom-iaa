@@ -189,7 +189,9 @@ export function useSubscription() {
         .eq('id', user.id)
         .maybeSingle();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.warn('Erro ao buscar perfil, continuando...', profileError.message);
+      }
 
       if (profile?.test_access) {
         setState({
@@ -225,7 +227,9 @@ export function useSubscription() {
         subscription_end?: string | null;
       }>('check-subscription', { token: activeSession.access_token });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Erro ao verificar assinatura:', error.message);
+      }
 
       setState({
         subscribed: data?.subscribed ?? false,
