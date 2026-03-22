@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import Analytics from "@vercel/analytics";
 import App from "./App";
 import "./index.css";
 import "./i18n";

@@ -19,9 +19,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { inject } from '@vercel/analytics';
-
-inject();
+import { Analytics } from '@vercel/analytics/react';
 
 const queryClient = new QueryClient();
 
@@ -73,6 +71,7 @@ const App = () => (
         <SubscriptionPopup />
         <InstallPrompt />
       </BrowserRouter>
+      <Analytics />
     </TooltipProvider>
   </QueryClientProvider>
 );
