@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { BookOpen, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { jsPDF } from 'jspdf';
 import type { Tables } from '@/integrations/supabase/types';
 
 interface Ingredient {
@@ -65,6 +64,7 @@ const RecipeBookGenerator = ({ recipes, userName }: Props) => {
     }
     setGenerating(true);
     try {
+      const { jsPDF } = await import('jspdf');
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();

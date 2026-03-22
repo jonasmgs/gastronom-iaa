@@ -17,6 +17,8 @@ import EditRecipe from "./pages/EditRecipe";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { inject } from '@vercel/analytics';
 
 inject();
@@ -41,19 +43,22 @@ const AppRoutes = () => {
   useEffect(() => { initTheme(); }, []);
 
   return (
-    <Routes>
-      <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/recipes" element={<ProtectedRoute><MyRecipes /></ProtectedRoute>} />
-      <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
-      <Route path="/edit-recipe" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/sucesso" element={<Navigate to="/settings?checkout=success" replace />} />
-      <Route path="/planos" element={<Navigate to="/settings?checkout=cancel" replace />} />
-      <Route path="/nutrition" element={<Navigate to="/" replace />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/recipes" element={<ProtectedRoute><MyRecipes /></ProtectedRoute>} />
+        <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
+        <Route path="/edit-recipe" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/sucesso" element={<Navigate to="/settings?checkout=success" replace />} />
+        <Route path="/planos" element={<Navigate to="/settings?checkout=cancel" replace />} />
+        <Route path="/nutrition" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </ErrorBoundary>
   );
 };
 
