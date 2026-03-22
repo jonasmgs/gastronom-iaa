@@ -67,11 +67,20 @@ const Index = () => {
     setShowServingsModal(false);
     setGenerating(true);
     try {
+      console.log('[DEBUG] Iniciando geracao de receita...');
+      console.log('[DEBUG] Ingredientes:', ingredients);
+      
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: { ingredients, category, complexity, servings, description: description.trim() || null, dietMode },
         token: session?.access_token,
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('[DEBUG] Erro da Edge Function:', error);
+        throw error;
+      }
+      
+      console.log('[DEBUG] Resposta recebida:', data);
 
       const recipe = data;
       const preparation = recipe.steps
@@ -98,8 +107,12 @@ const Index = () => {
       if (saveErr) throw saveErr;
       navigate(`/recipe/${saved.id}`);
     } catch (err: unknown) {
+      console.error('[DEBUG] Erro completo:', err);
       const message = err instanceof Error ? err.message : t('home.errorGenerating');
-      toast.error(message);
+      toast.error(message, {
+        description: 'Verifique o console para mais detalhes',
+        duration: 5000,
+      });
     } finally {
       setGenerating(false);
     }
