@@ -70,32 +70,49 @@ function normalizeIngredients(value: unknown): Ingredient[] {
       let quantity = String(record.quantity ?? "").trim().toLowerCase();
       let tip = String(record.tip ?? "").trim();
 
-      // FORCED PROGRAMMATIC CLEANUP: If the LLM still sends units despite the prompt
+      // Programmatic cleanup for non-metric units (aggressive)
       const forbiddenUnits = [
         "unidade", "unidades", " un", "un ", "un.", "fatia", "fatias", 
         "dente", "dentes", "xícara", "xícaras", "colher", "colheres", 
-        "pitada", "maço", "maços", "unid"
+        "pitada", "maço", "maços", "unid", "meia", "meio", "inteiro", "inteira"
       ];
 
-      const hasForbidden = forbiddenUnits.some(unit => quantity.includes(unit));
+      const hasForbidden = forbiddenUnits.some(unit => quantity.includes(unit)) || 
+                          (!quantity.includes("g") && !quantity.includes("kg") && 
+                           !quantity.includes("ml") && !quantity.includes("l"));
       
       if (hasForbidden) {
-        // Move the original info to the tip to help the user
         if (!tip) tip = `Original: ${quantity}`;
         
-        // Attempt to extract a number and convert to a metric value
-        const numMatch = quantity.match(/(\d+([.,]\d+)?)/);
-        if (numMatch) {
-          const num = parseFloat(numMatch[1].replace(',', '.'));
-          // Very rough conversion logic just to avoid 'un'
-          if (quantity.includes("ovo")) quantity = `${num * 50}g`;
-          else if (quantity.includes("alho")) quantity = `${num * 5}g`;
-          else if (quantity.includes("cebola")) quantity = `${num * 150}g`;
-          else if (quantity.includes("xícara")) quantity = `${num * 200}g`;
-          else if (quantity.includes("colher")) quantity = `${num * 15}g`;
-          else quantity = `${num * 100}g`; // Default fallback
+        // Handle fractions like 1/2 or 1/4
+        let num = 0;
+        const fractionMatch = quantity.match(/(\d+)\/(\d+)/);
+        if (fractionMatch) {
+          num = parseInt(fractionMatch[1]) / parseInt(fractionMatch[2]);
         } else {
-          quantity = "100g"; // Hard fallback
+          const numMatch = quantity.match(/(\d+([.,]\d+)?)/);
+          if (numMatch) {
+            num = parseFloat(numMatch[1].replace(',', '.'));
+          } else if (quantity.includes("meia") || quantity.includes("meio") || quantity.includes("metade")) {
+            num = 0.5;
+          } else {
+            num = 1;
+          }
+        }
+
+        // Hard conversion map to ensure metric units
+        if (quantity.includes("ovo")) quantity = `${Math.round(num * 50)}g`;
+        else if (quantity.includes("alho")) quantity = `${Math.round(num * 5)}g`;
+        else if (quantity.includes("cebola")) quantity = `${Math.round(num * 150)}g`;
+        else if (quantity.includes("xícara") || quantity.includes("copo")) quantity = `${Math.round(num * 200)}g`;
+        else if (quantity.includes("colher de sopa")) quantity = `${Math.round(num * 15)}g`;
+        else if (quantity.includes("colher de chá")) quantity = `${Math.round(num * 5)}g`;
+        else if (quantity.includes("fatia")) quantity = `${Math.round(num * 30)}g`;
+        else if (quantity.includes("pitada")) quantity = `1g`;
+        else if (quantity.includes("maço")) quantity = `100g`;
+        else {
+          // If we don't know the density, we assume it's roughly 100g/unit
+          quantity = `${Math.round(num * 100)}g`;
         }
       }
 
@@ -194,10 +211,15 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     "REGRAS CRÍTICAS DE UNIDADES (PROIBIDO DESCUMPRIR):",
     "1. O campo 'quantity' deve conter EXCLUSIVAMENTE: gramas (g), quilos (kg), mililitros (ml) ou litros (l).",
     "2. É TERMINANTEMENTE PROIBIDO usar as palavras: 'unidade', 'un', 'fatia', 'dente', 'xícara', 'colher', 'pitada', 'maço' ou qualquer outra medida não métrica.",
-    "3. EXEMPLO OBRIGATÓRIO: Em vez de '2 unidades de ovo', use '100g de ovo'. Em vez de '1 dente de alho', use '5g de alho'.",
-    "4. EXEMPLO OBRIGATÓRIO: Em vez de '1 fatia de pão', use '30g de pão'.",
-    "5. Se precisar explicar a equivalência para o usuário, use APENAS o campo 'tip' (ex: 'Equivale a 2 ovos'). O campo 'quantity' NÃO pode ter nada além de peso ou volume.",
-    "6. NUNCA DEVOLVA '1 un' OU '2 unidades'. Se fizer isso, a receita será considerada inválida.",
+    "3. EXEMPLO OBRIGATÓRIO (CORRETO VS INCORRETO):",
+    "   - INCORRETO: { \"name\": \"Ovo\", \"quantity\": \"2 unidades\" }",
+    "   - CORRETO: { \"name\": \"Ovo\", \"quantity\": \"100g\", \"tip\": \"Equivale a 2 ovos médios\" }",
+    "   - INCORRETO: { \"name\": \"Açúcar\", \"quantity\": \"1 xícara\" }",
+    "   - CORRETO: { \"name\": \"Açúcar\", \"quantity\": \"200g\", \"tip\": \"Equivale a 1 xícara\" }",
+    "   - INCORRETO: { \"name\": \"Alho\", \"quantity\": \"1 dente\" }",
+    "   - CORRETO: { \"name\": \"Alho\", \"quantity\": \"5g\", \"tip\": \"Equivale a 1 dente médio\" }",
+    "4. Converta TUDO para métrico (g ou ml). Use o campo 'tip' para explicar a equivalência para o usuário.",
+    "5. NUNCA DEVOLVA NADA QUE NÃO SEJA g, kg, ml ou l no campo quantity.",
     "Todos os ingredientes citados no preparo devem existir na lista de ingredientes.",
     "O preparo precisa ter pelo menos 4 passos completos.",
     "Informe calorias realistas e um resumo nutricional por porcao.",
@@ -214,6 +236,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
         complexity ? `Complexidade desejada: ${complexity}.` : "",
         `Rendimento obrigatorio: ${servings} porcoes.`,
         `Schema JSON: ${schema}`,
+        "IMPORTANTE: NUNCA use unidades como 'xícara', 'colher' ou 'unidade'. Converta TUDO para gramas (g) ou mililitros (ml).",
       ].filter(Boolean).join("\n\n"),
     };
   }
@@ -229,6 +252,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
       activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
       `Rendimento obrigatorio: ${servings} porcoes.`,
       `Schema JSON: ${schema}`,
+      "IMPORTANTE: NUNCA use unidades como 'xícara', 'colher' ou 'unidade'. Converta TUDO para gramas (g) ou mililitros (ml).",
     ].filter(Boolean).join("\n\n"),
   };
 }
