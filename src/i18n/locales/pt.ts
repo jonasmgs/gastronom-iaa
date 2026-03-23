@@ -44,6 +44,7 @@ export default {
     appName: 'NutriChef AI',
     appSlogan: 'Receitas inteligentes com IA',
     continueWithApple: 'Continuar com Apple',
+    continueWithGoogle: 'Continuar com Google',
     orContinueWithEmail: 'Ou continue com e-mail',
   },
   home: {
@@ -131,9 +132,13 @@ export default {
     addItem: 'Adicionar Item',
     itemNamePlaceholder: 'Nome do item...',
     itemQtyPlaceholder: 'Qtd...',
+    itemPricePlaceholder: 'R$...',
     clearChecked: 'Limpar marcados',
     itemAdded: 'Item adicionado!',
     clearedChecked: 'Itens marcados removidos!',
+    total: 'Total estimado',
+    items: 'itens',
+    checked: 'marcados',
   },
   edit: {
     title: 'Editar Receita ✨',

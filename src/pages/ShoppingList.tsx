@@ -10,6 +10,7 @@ interface ShoppingItem {
   id: string;
   name: string;
   quantity: string;
+  price: number;
   recipeName?: string;
   checked: boolean;
   createdAt: string;
@@ -24,6 +25,7 @@ const ShoppingList = () => {
   const [loading, setLoading] = useState(true);
   const [newItemName, setNewItemName] = useState('');
   const [newItemQty, setNewItemQty] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState('');
 
   useEffect(() => {
     const list = localStorage.getItem('shopping_list');
@@ -47,6 +49,7 @@ const ShoppingList = () => {
       id: crypto.randomUUID(),
       name: newItemName.trim(),
       quantity: newItemQty.trim() || '1',
+      price: parseFloat(newItemPrice) || 0,
       checked: false,
       createdAt: new Date().toISOString()
     };
@@ -54,8 +57,16 @@ const ShoppingList = () => {
     saveList([newItem, ...items]);
     setNewItemName('');
     setNewItemQty('');
+    setNewItemPrice('');
     hapticsSuccess();
     toast.success(t('shopping.itemAdded'));
+  };
+
+  const updateItemPrice = (id: string, price: number) => {
+    const newList = items.map(item => 
+      item.id === id ? { ...item, price } : item
+    );
+    saveList(newList);
   };
 
   const toggleItem = (id: string) => {
@@ -84,11 +95,15 @@ const ShoppingList = () => {
     if (items.length === 0) return;
     hapticsImpactLight();
     
+    const total = items.reduce((sum, item) => sum + (item.price || 0), 0);
     let text = `🛒 ${t('shopping.title')}\n\n`;
     items.forEach(item => {
-      text += `${item.checked ? '✅' : '⬜'} ${item.name} (${item.quantity})\n`;
+      const priceText = item.price ? ` - R$ ${item.price.toFixed(2).replace('.', ',')}` : '';
+      text += `${item.checked ? '✅' : '⬜'} ${item.name} (${item.quantity})${priceText}\n`;
     });
-    text += `\nFeito com Gastronom.IA`;
+    text += `\n━━━━━━━━━━━━━━━━━━━━━━`;
+    text += `\n${t('shopping.total')}: R$ ${total.toFixed(2).replace('.', ',')}`;
+    text += `\n\nFeito com Gastronom.IA`;
 
     if (navigator.share) {
       await navigator.share({ text });
@@ -130,7 +145,14 @@ const ShoppingList = () => {
               value={newItemQty}
               onChange={(e) => setNewItemQty(e.target.value)}
               placeholder={t('shopping.itemQtyPlaceholder')}
-              className="w-24 bg-muted/50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+              className="w-20 bg-muted/50 border-none rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+            />
+            <input
+              type="number"
+              value={newItemPrice}
+              onChange={(e) => setNewItemPrice(e.target.value)}
+              placeholder={t('shopping.itemPricePlaceholder')}
+              className="w-24 bg-muted/50 border-none rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </div>
           <button type="submit" className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-bold shadow-md active:scale-95 transition-all">
@@ -138,6 +160,20 @@ const ShoppingList = () => {
             {t('shopping.addItem')}
           </button>
         </form>
+
+        {/* Total */}
+        {items.length > 0 && (
+          <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-primary">{t('shopping.total')}</p>
+              <p className="text-2xl font-bold text-primary">{items.reduce((sum, item) => sum + (item.price || 0), 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">{items.length} {t('shopping.items')}</p>
+              <p className="text-xs text-muted-foreground">{items.filter(i => i.checked).length} {t('shopping.checked')}</p>
+            </div>
+          </div>
+        )}
 
         {/* List Actions */}
         {items.some(item => item.checked) && (
@@ -193,9 +229,22 @@ const ShoppingList = () => {
                     </div>
                   </div>
 
-                  <button onClick={() => deleteItem(item.id)} className="h-8 w-8 flex items-center justify-center text-muted-foreground/50 hover:text-destructive">
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                      <input
+                        type="number"
+                        value={item.price || ''}
+                        onChange={(e) => updateItemPrice(item.id, parseFloat(e.target.value) || 0)}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="0,00"
+                        className="w-20 bg-muted/50 border-none rounded-lg px-6 py-1.5 text-sm text-right focus:ring-2 focus:ring-primary outline-none"
+                      />
+                    </div>
+                    <button onClick={() => deleteItem(item.id)} className="h-8 w-8 flex items-center justify-center text-muted-foreground/50 hover:text-destructive">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>

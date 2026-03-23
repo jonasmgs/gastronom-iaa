@@ -11,6 +11,7 @@ export interface Ingredient {
   quantity: string;
   calories: number;
   tip?: string;
+  price?: number;
 }
 
 export interface RecipeGeneratorResponse {

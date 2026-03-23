@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, WheatOff, MilkOff, Loader2, Wand2, MessageCircle, Pencil, Play, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, WheatOff, MilkOff, Loader2, Wand2, MessageCircle, Pencil, Play, ShoppingCart, X, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -76,6 +76,8 @@ const RecipeResult = () => {
   const [addingToCart, setAddingToCart] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [shoppingListOpen, setShoppingListOpen] = useState(false);
+  const [shoppingList, setShoppingList] = useState<Array<{id: string; name: string; quantity: string; price: number; recipeName: string; checked: boolean; createdAt: string}>>([]);
 
   const addToShoppingList = () => {
     if (!recipe) return;
@@ -90,6 +92,7 @@ const RecipeResult = () => {
       id: crypto.randomUUID(),
       name: ing.name,
       quantity: ing.quantity,
+      price: ing.price || 0,
       recipeName: recipe.recipe_name,
       checked: false,
       createdAt: new Date().toISOString()
