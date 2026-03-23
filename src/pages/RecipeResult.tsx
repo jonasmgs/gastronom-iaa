@@ -15,6 +15,32 @@ import type { Tables } from '@/integrations/supabase/types';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
 import type { Ingredient, RecipeGeneratorResponse, Step } from '@/types/recipe';
 
+function safeParseJSONArray<T>(data: unknown, fallback: T[] = []): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed as T[] : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
+function safeParseJSONObject<T>(data: unknown, fallback: T): T {
+  if (typeof data === 'object' && data !== null && !Array.isArray(data)) return data as T;
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      return (typeof parsed === 'object' && parsed !== null) ? parsed as T : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
 interface RecipeMeta {
   nutrition_info?: string;
   chef_tips?: string;
@@ -71,18 +97,9 @@ const RecipeResult = () => {
 
   const handleShare = async () => {
     if (!recipe) return;
-    let ingredients: Ingredient[] = [];
-    try {
-      const parsed = JSON.parse(recipe.ingredients as unknown as string || '[]');
-      ingredients = Array.isArray(parsed) ? parsed : [];
-    } catch { ingredients = []; }
-    
-    let meta: RecipeMeta = {};
-    try { 
-      const parsed = JSON.parse(recipe.nutrition_info || '{}'); 
-      meta = typeof parsed === 'object' && parsed !== null ? parsed : {};
-    } catch { meta = {}; }
-    const steps = Array.isArray(meta.steps) ? meta.steps : [];
+    const shareIngredients = safeParseJSONArray<Ingredient>(recipe.ingredients);
+    const shareMeta = safeParseJSONObject<RecipeMeta>(recipe.nutrition_info, {});
+    const shareSteps = safeParseJSONArray<Step>(shareMeta.steps);
 
     let text = `🍽️ ${recipe.recipe_name}\n`;
     text += `🔥 ${recipe.calories_total} kcal\n`;
@@ -91,12 +108,12 @@ const RecipeResult = () => {
     if (meta.cook_time) text += `🕐 ${t('common.cooking')}: ${meta.cook_time}\n`;
     if (meta.servings) text += `👥 ${meta.servings} ${t('common.portions')}\n`;
     text += `\n${t('recipe.ingredients')}\n`;
-    ingredients.forEach(ing => {
+    shareIngredients.forEach(ing => {
       text += `• ${ing.name} — ${ing.quantity} (${ing.calories} kcal)\n`;
     });
     text += `\n${t('recipe.stepByStep')}\n`;
-    if (steps.length > 0) {
-      steps.forEach(step => {
+    if (shareSteps.length > 0) {
+      shareSteps.forEach(step => {
         text += `${step.step_number}. ${step.title}: ${step.description}`;
         if (step.duration) text += ` (${step.duration})`;
         if (step.tip) text += `\n   💡 ${step.tip}`;
@@ -105,8 +122,8 @@ const RecipeResult = () => {
     } else {
       text += recipe.preparation + '\n';
     }
-    if (meta.chef_tips) text += `\n👨‍🍳 ${t('recipe.chefTips')}\n${meta.chef_tips}\n`;
-    if (meta.nutrition_info) text += `\n📊 ${t('recipe.nutritionInfo')}\n${meta.nutrition_info}\n`;
+    if (shareMeta.chef_tips) text += `\n👨‍🍳 ${t('recipe.chefTips')}\n${shareMeta.chef_tips}\n`;
+    if (shareMeta.nutrition_info) text += `\n📊 ${t('recipe.nutritionInfo')}\n${shareMeta.nutrition_info}\n`;
     text += `\nFeito com Gastronom.IA`;
 
     if (navigator.share) {
@@ -127,13 +144,10 @@ const RecipeResult = () => {
     if (!recipe || !hasActiveFilters || !user) return;
     setTransforming(true);
     try {
-      let ingredients: Ingredient[] = [];
-      try {
-        const parsed = JSON.parse(recipe.ingredients as unknown as string || '[]');
-        ingredients = Array.isArray(parsed) ? parsed : [];
-      } catch { ingredients = []; }
+      const transformIngredients = safeParseJSONArray<Ingredient>(recipe.ingredients);
+      const transformMeta = safeParseJSONObject<RecipeMeta>(recipe.nutrition_info, {});
       
-      const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${ingredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
+      const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${transformIngredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
 
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: { mode: 'transform', existing_recipe: existingText, filters },
@@ -196,25 +210,9 @@ const RecipeResult = () => {
 
   if (!recipe) return null;
 
-  let ingredients: Ingredient[] = [];
-  try {
-    const parsed = JSON.parse(recipe.ingredients as unknown as string || '[]');
-    ingredients = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    console.error('[DEBUG] Erro ao parsear ingredients:', recipe.ingredients);
-    ingredients = [];
-  }
-
-  let meta: RecipeMeta = {};
-  try {
-    const parsed = JSON.parse(recipe.nutrition_info || '{}');
-    meta = typeof parsed === 'object' && parsed !== null ? parsed : {};
-  } catch {
-    console.error('[DEBUG] Erro ao parsear nutrition_info:', recipe.nutrition_info);
-    meta = {};
-  }
-
-  const steps = Array.isArray(meta.steps) ? meta.steps : [];
+  const ingredients = safeParseJSONArray<Ingredient>(recipe.ingredients);
+  const meta = safeParseJSONObject<RecipeMeta>(recipe.nutrition_info, {});
+  const steps = safeParseJSONArray<Step>(meta.steps);
   const hasDetailedFormat = steps.length > 0;
 
   const handleNameSave = async (newName: string) => {

@@ -18,7 +18,7 @@
 # ============================================
 
 # Chave secreta do Stripe (começa com sk_live_ ou sk_test_)
-STRIPE_SECRET_KEY="sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+STRIPE_SECRET_KEY="REPLACE_WITH_YOUR_STRIPE_SECRET_KEY"
 
 # ============================================
 # PASSO 2: Crie um produto e obtenha o Price ID
