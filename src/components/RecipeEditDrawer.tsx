@@ -62,7 +62,7 @@ const RecipeEditDrawer = ({
         .from('recipes')
         .update({
           recipe_name: name.trim(),
-          ingredients: JSON.stringify(ings.filter(i => i.name.trim())),
+          ingredients: ings.filter(i => i.name.trim()) as any,
           preparation: prep,
           calories_total: totalCalories,
         })

@@ -115,7 +115,7 @@ const Index = () => {
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: recipe.recipe_name,
-        ingredients: safeIngredients,
+        ingredients: safeIngredients as any,
         preparation,
         calories_total: recipe.calories_total || 0,
         nutrition_info: JSON.stringify({

@@ -167,7 +167,7 @@ const RecipeChat = ({ recipe, recipeId, rawIngredients, open, onClose, onRecipeU
             if (changed) {
               const { error } = await supabase
                 .from('recipes')
-                .update({ ingredients: JSON.stringify(updatedIngredients) })
+                .update({ ingredients: updatedIngredients as any })
                 .eq('id', recipeId);
               if (!error) {
                 toast.success(t('chat.substituted', { name: newName }));

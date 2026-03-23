@@ -238,7 +238,7 @@ const RecipeResult = () => {
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: transformed.recipe_name,
-        ingredients: transformed.ingredients || [],
+        ingredients: (transformed.ingredients || []) as any,
         preparation,
         calories_total: transformed.calories_total || 0,
         nutrition_info: JSON.stringify({
