@@ -1,8 +1,0 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.gastronom.ia",
-    "sha256_cert_fingerprints": ["36:6B:63:58:44:30:7B:25:37:50:16:F2:C7:A9:7A:29:52:F2:40:51:B7:39:D2:F0:D6:E0:23:80:11:C4:F1:36"]
-  }
-}]
