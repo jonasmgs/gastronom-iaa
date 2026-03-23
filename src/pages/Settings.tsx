@@ -254,7 +254,7 @@ const Settings = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acao remove sua conta, receitas e perfil nutricional do app. Registros de pagamento podem ser mantidos pelo provedor de pagamento quando exigido por lei.
+                    Esta acao remove sua conta e receitas do app. Registros de pagamento podem ser mantidos pelo provedor de pagamento quando exigido por lei.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

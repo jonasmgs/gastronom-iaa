@@ -27,12 +27,6 @@ serve(async (req) => {
       .eq("user_id", user.id);
     if (recipeError) throw recipeError;
 
-    const { error: nutritionError } = await adminClient
-      .from("nutrition_profiles")
-      .delete()
-      .eq("user_id", user.id);
-    if (nutritionError) throw nutritionError;
-
     const { error: profileError } = await adminClient
       .from("profiles")
       .delete()

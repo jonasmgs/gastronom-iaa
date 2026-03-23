@@ -39,7 +39,6 @@ const Index = () => {
   const [currentBg, setCurrentBg] = useState(0);
   const [servings, setServings] = useState<number>(2);
   const [showServingsModal, setShowServingsModal] = useState(false);
-  const [dietMode, setDietMode] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
@@ -71,7 +70,7 @@ const Index = () => {
       console.log('[DEBUG] Ingredientes:', ingredients);
       
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
-        body: { ingredients, category, complexity, servings, description: description.trim() || null, dietMode },
+        body: { ingredients, category, complexity, servings, description: description.trim() || null },
         token: session?.access_token,
       });
       
@@ -184,8 +183,6 @@ const Index = () => {
             description={description}
             onDescriptionChange={setDescription}
             showDescription
-            dietMode={dietMode}
-            onDietModeChange={setDietMode}
           />
         </div>
 

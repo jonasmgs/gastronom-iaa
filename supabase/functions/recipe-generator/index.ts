@@ -128,15 +128,11 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   const complexity = typeof body.complexity === "string" ? body.complexity.trim() : "";
   const filters = typeof body.filters === "object" && body.filters ? body.filters as Record<string, unknown> : {};
   const existingRecipe = typeof body.existing_recipe === "string" ? body.existing_recipe.trim().slice(0, 5000) : "";
-  const nutritionProfile = typeof body.nutritionProfile === "object" && body.nutritionProfile
-    ? body.nutritionProfile as Record<string, unknown>
-    : null;
 
   const activeFilters = [
     filters.vegan ? "vegana" : null,
     filters.glutenFree ? "sem gluten" : null,
     filters.lactoseFree ? "sem lactose" : null,
-    body.dietMode === true ? "baixa caloria" : null,
   ].filter(Boolean).join(", ");
 
   const schema = `{
@@ -177,27 +173,6 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
         activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
         category ? `Categoria desejada: ${category}.` : "",
         complexity ? `Complexidade desejada: ${complexity}.` : "",
-        `Rendimento obrigatorio: ${servings} porcoes.`,
-        `Schema JSON: ${schema}`,
-      ].filter(Boolean).join("\n\n"),
-    };
-  }
-
-  if (nutritionProfile) {
-    const allergies = Array.isArray(nutritionProfile.allergies)
-      ? (nutritionProfile.allergies as unknown[]).map((item) => String(item)).filter(Boolean)
-      : [];
-
-    return {
-      systemPrompt,
-      userPrompt: [
-        "Crie uma receita personalizada para o seguinte perfil nutricional.",
-        `Ingredientes prioritarios: ${ingredients.join(", ") || "livre"}.`,
-        description ? `Descricao do prato desejado: ${description}.` : "",
-        category ? `Tipo de prato: ${category}.` : "",
-        activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
-        allergies.length > 0 ? `Alergias proibidas: ${allergies.join(", ")}.` : "",
-        `Perfil: ${JSON.stringify(nutritionProfile)}.`,
         `Rendimento obrigatorio: ${servings} porcoes.`,
         `Schema JSON: ${schema}`,
       ].filter(Boolean).join("\n\n"),
@@ -246,9 +221,8 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const ingredients = sanitizeItems(body.ingredients);
     const mode = body.mode === "transform" ? "transform" : "generate";
-    const nutritionMode = body.nutritionMode === true;
 
-    if (mode !== "transform" && !nutritionMode && ingredients.length < 2) {
+    if (mode !== "transform" && ingredients.length < 2) {
       return new Response(JSON.stringify({ error: "Envie pelo menos 2 ingredientes" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
