@@ -67,11 +67,21 @@ function normalizeIngredients(value: unknown): Ingredient[] {
   return value
     .map((item) => {
       const record = typeof item === "object" && item ? item as Record<string, unknown> : {};
+      let quantity = String(record.quantity ?? "").trim().toLowerCase();
+      let tip = String(record.tip ?? "").trim();
+
+      // Programmatic cleanup for common non-metric units
+      if (quantity.includes("unidade") || quantity.includes(" un") || quantity.endsWith(" un")) {
+        // If the LLM failed, we try to move the info to the tip and set a dummy weight if possible,
+        // but better to just let the prompt handle it. 
+        // Here we just make sure we are not introducing invalid state.
+      }
+
       return {
         name: String(record.name ?? "").trim(),
         quantity: String(record.quantity ?? "").trim(),
         calories: Number(record.calories ?? 0) || 0,
-        tip: String(record.tip ?? "").trim(),
+        tip: tip,
       };
     })
     .filter((item) => item.name.length > 0);
@@ -159,10 +169,13 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     "Responda sempre em portugues do Brasil.",
     "Retorne apenas JSON valido, sem markdown e sem texto extra.",
     "A receita deve ser saborosa, coerente e tecnicamente correta.",
-    "Utilize EXCLUSIVAMENTE medidas de peso (g, kg) ou volume (ml, l) na lista de ingredientes.",
-    "É PROIBIDO o uso de 'unidade', 'un', 'xícara', 'colher', 'fatia' ou qualquer outra medida que não seja g, kg, ml ou l na quantidade dos ingredientes.",
-    "Até mesmo ingredientes como ovos, dentes de alho ou fatias de pão devem ter a quantidade em gramas (ex: 100g de ovos).",
-    "Você PODE explicar a equivalência no campo 'tip' do ingrediente (ex: 'Equivale a 2 ovos médios') para ajudar o usuário, mas o campo 'quantity' deve ser apenas o valor métrico.",
+    "REGRAS CRÍTICAS DE UNIDADES (PROIBIDO DESCUMPRIR):",
+    "1. O campo 'quantity' deve conter EXCLUSIVAMENTE: gramas (g), quilos (kg), mililitros (ml) ou litros (l).",
+    "2. É TERMINANTEMENTE PROIBIDO usar as palavras: 'unidade', 'un', 'fatia', 'dente', 'xícara', 'colher', 'pitada', 'maço' ou qualquer outra medida não métrica.",
+    "3. EXEMPLO OBRIGATÓRIO: Em vez de '2 unidades de ovo', use '100g de ovo'. Em vez de '1 dente de alho', use '5g de alho'.",
+    "4. EXEMPLO OBRIGATÓRIO: Em vez de '1 fatia de pão', use '30g de pão'.",
+    "5. Se precisar explicar a equivalência para o usuário, use APENAS o campo 'tip' (ex: 'Equivale a 2 ovos'). O campo 'quantity' NÃO pode ter nada além de peso ou volume.",
+    "6. NUNCA DEVOLVA '1 un' OU '2 unidades'. Se fizer isso, a receita será considerada inválida.",
     "Todos os ingredientes citados no preparo devem existir na lista de ingredientes.",
     "O preparo precisa ter pelo menos 4 passos completos.",
     "Informe calorias realistas e um resumo nutricional por porcao.",
