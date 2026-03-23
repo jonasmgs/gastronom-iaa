@@ -138,10 +138,10 @@ const RecipeResult = () => {
 
     let text = `🍽️ ${recipe.recipe_name}\n`;
     text += `🔥 ${recipe.calories_total} kcal\n`;
-    if (meta.difficulty) text += `📊 ${t('recipe.difficulty')}: ${meta.difficulty}\n`;
-    if (meta.prep_time) text += `⏱️ ${t('common.prep')}: ${meta.prep_time}\n`;
-    if (meta.cook_time) text += `🕐 ${t('common.cooking')}: ${meta.cook_time}\n`;
-    if (meta.servings) text += `👥 ${meta.servings} ${t('common.portions')}\n`;
+    if (shareMeta.difficulty) text += `📊 ${t('recipe.difficulty')}: ${shareMeta.difficulty}\n`;
+    if (shareMeta.prep_time) text += `⏱️ ${t('common.prep')}: ${shareMeta.prep_time}\n`;
+    if (shareMeta.cook_time) text += `🕐 ${t('common.cooking')}: ${shareMeta.cook_time}\n`;
+    if (shareMeta.servings) text += `👥 ${shareMeta.servings} ${t('common.portions')}\n`;
     text += `\n${t('recipe.ingredients')}\n`;
     shareIngredients.forEach(ing => {
       text += `• ${ing.name} — ${ing.quantity} (${ing.calories} kcal)\n`;
@@ -253,7 +253,6 @@ const RecipeResult = () => {
   const meta = safeParseJSONObject<RecipeMeta>(recipe.nutrition_info, {});
   const steps = safeParseJSONArray<Step>(meta.steps);
   const hasDetailedFormat = steps.length > 0;
-  const totalCost = Object.values(ingredientCosts).reduce((sum, item) => sum + (item.calculated_cost || 0), 0);
 
   const handleNameSave = async (newName: string) => {
     const trimmed = newName.trim();
