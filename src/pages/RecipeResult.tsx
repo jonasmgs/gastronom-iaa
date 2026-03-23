@@ -593,6 +593,8 @@ const RecipeResult = () => {
         )}
       </AnimatePresence>
 
+      <BottomNav />
+
       <AnimatePresence>
         {activeIngredientForCost && (
           <IngredientCostCalculator
@@ -605,8 +607,6 @@ const RecipeResult = () => {
           />
         )}
       </AnimatePresence>
-
-      <BottomNav />
     </main>
   );
 };
