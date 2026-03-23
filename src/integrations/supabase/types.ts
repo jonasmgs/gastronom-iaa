@@ -53,6 +53,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_costs: {
+        Row: {
+          id: string
+          user_id: string
+          recipe_id: string
+          ingredient_name: string
+          purchase_quantity: number
+          purchase_unit: string
+          purchase_price: number
+          calculated_cost: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          recipe_id: string
+          ingredient_name: string
+          purchase_quantity: number
+          purchase_unit: string
+          purchase_price: number
+          calculated_cost: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          recipe_id?: string
+          ingredient_name?: string
+          purchase_quantity?: number
+          purchase_unit?: string
+          purchase_price?: number
+          calculated_cost?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_costs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_costs_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

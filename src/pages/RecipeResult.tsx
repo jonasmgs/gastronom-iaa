@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, WheatOff, MilkOff, Loader2, Wand2, MessageCircle, Pencil, Play, ShoppingCart, X, Copy } from 'lucide-react';
+import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, WheatOff, MilkOff, Loader2, Wand2, MessageCircle, Pencil, Play, ShoppingCart, X, Copy, Calculator } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -11,6 +11,7 @@ import BottomNav from '@/components/BottomNav';
 import RecipeChat from '@/components/RecipeChat';
 import RecipeEditDrawer from '@/components/RecipeEditDrawer';
 import CookingMode from '@/components/CookingMode';
+import IngredientCostCalculator from '@/components/IngredientCostCalculator';
 import bgUtensils from '@/assets/bg-utensils.jpg';
 import type { Tables } from '@/integrations/supabase/types';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
@@ -78,6 +79,43 @@ const RecipeResult = () => {
   const [editedName, setEditedName] = useState('');
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [shoppingList, setShoppingList] = useState<Array<{id: string; name: string; quantity: string; price: number; recipeName: string; checked: boolean; createdAt: string}>>([]);
+  const [activeIngredientForCost, setActiveIngredientForCost] = useState<{name: string, quantity: string} | null>(null);
+  const [ingredientCosts, setIngredientCosts] = useState<Record<string, any>>({});
+
+  const fetchCosts = useCallback(async () => {
+    if (!user || !id) return;
+    const { data, error } = await supabase
+      .from('ingredient_costs')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('recipe_id', id);
+    
+    if (!error && data) {
+      const costsMap = data.reduce((acc, item) => ({
+        ...acc,
+        [item.ingredient_name]: item
+      }), {});
+      setIngredientCosts(costsMap);
+    }
+  }, [user, id]);
+
+  const clearAllCosts = async () => {
+    if (!user || !id) return;
+    const { error } = await supabase
+      .from('ingredient_costs')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('recipe_id', id);
+    
+    if (!error) {
+      setIngredientCosts({});
+      toast.success(t('common.success'));
+    }
+  };
+
+  useEffect(() => {
+    fetchCosts();
+  }, [fetchCosts]);
 
   const addToShoppingList = () => {
     if (!recipe) return;
@@ -253,6 +291,7 @@ const RecipeResult = () => {
   const meta = safeParseJSONObject<RecipeMeta>(recipe.nutrition_info, {});
   const steps = safeParseJSONArray<Step>(meta.steps);
   const hasDetailedFormat = steps.length > 0;
+  const totalCost = Object.values(ingredientCosts).reduce((sum, item) => sum + (item.calculated_cost || 0), 0);
 
   const handleNameSave = async (newName: string) => {
     const trimmed = newName.trim();
@@ -402,19 +441,57 @@ const RecipeResult = () => {
           {/* Ingredients */}
           <section className="rounded-2xl border border-border bg-card p-4" aria-label={t('recipe.ingredients')}>
             <h2 className="mb-3 text-sm font-semibold text-card-foreground">{t('recipe.ingredients')}</h2>
-            <ul className="space-y-2.5" role="list">
-              {ingredients.map((ing, i) => (
-                <li key={i} className="space-y-0.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-card-foreground font-medium">
-                      {ing.name} — <span className="text-muted-foreground font-normal">{ing.quantity}</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground">{ing.calories} {t('common.kcal')}</span>
+            <div className="flex flex-col gap-3">
+                {ingredients.map((ing, i) => (
+                  <div key={i} className="group relative flex items-start justify-between gap-3 rounded-2xl bg-muted/30 p-4 transition-all hover:bg-muted/50">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-primary/40" />
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{ing.name}</p>
+                        <p className="text-xs text-muted-foreground">{ing.quantity}</p>
+                        {ingredientCosts[ing.name] && (
+                          <p className="mt-1 text-[10px] font-bold text-primary uppercase tracking-wider">
+                            {t('recipe.recipeCost')}: R$ {ingredientCosts[ing.name].calculated_cost.toFixed(2).replace('.', ',')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveIngredientForCost({ name: ing.name, quantity: ing.quantity })}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full transition-all active:scale-90 ${
+                        ingredientCosts[ing.name] 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground hover:text-primary'
+                      }`}
+                    >
+                      <Calculator className="h-4 w-4" />
+                    </button>
                   </div>
-                  {ing.tip && <p className="text-xs text-muted-foreground italic pl-2">💡 {ing.tip}</p>}
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+
+              {totalCost > 0 && (
+                <div className="mt-6 rounded-2xl bg-primary/5 border border-primary/10 p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Flame className="h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-bold text-muted-foreground">{t('recipe.totalRecipeCost')}</span>
+                    </div>
+                    <span className="text-xl font-black text-primary">
+                      R$ {totalCost.toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                  
+                  <button
+                    onClick={clearAllCosts}
+                    className="w-full py-2 text-[10px] font-bold text-destructive uppercase tracking-widest hover:bg-destructive/5 rounded-lg transition-colors"
+                  >
+                    {t('recipe.clearCosts')}
+                  </button>
+                </div>
+              )}
           </section>
 
           {/* Step-by-step */}
@@ -512,6 +589,19 @@ const RecipeResult = () => {
             ingredients={ingredients}
             steps={steps}
             onClose={() => setCookingModeOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeIngredientForCost && (
+          <IngredientCostCalculator
+            ingredientName={activeIngredientForCost.name}
+            recipeQuantityStr={activeIngredientForCost.quantity}
+            recipeId={id!}
+            initialData={ingredientCosts[activeIngredientForCost.name]}
+            onSave={fetchCosts}
+            onClose={() => setActiveIngredientForCost(null)}
           />
         )}
       </AnimatePresence>
