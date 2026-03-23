@@ -32,9 +32,7 @@ const Auth = () => {
       // Definir o redirect correto com base no ambiente
       // Para web: window.location.origin
       // Para nativo (Android/iOS): com.gastronom.ia://auth/callback
-      const isNative = window.location.origin.includes('localhost') === false && 
-                       (window.location.protocol === 'capacitor:' || 
-                        window.location.protocol === 'http:');
+      const isNative = window.location.protocol === 'capacitor:' || (window.location.protocol === 'http:' && window.location.port === '');
       
       const redirectTo = isNative 
         ? 'com.gastronom.ia://auth/callback' 

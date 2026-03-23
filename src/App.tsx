@@ -12,6 +12,7 @@ import { initTheme } from '@/lib/theme';
 import SubscriptionPopup from '@/components/SubscriptionPopup';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import MyRecipes from "./pages/MyRecipes";
 import ShoppingList from "./pages/ShoppingList";
 import RecipeResult from "./pages/RecipeResult";
@@ -69,6 +70,7 @@ const AppRoutes = () => {
     <ErrorBoundary>
       <Routes>
         <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
         <Route path="/recipes" element={<ProtectedRoute><MyRecipes /></ProtectedRoute>} />
         <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
