@@ -45,6 +45,8 @@ const convertToSmallestUnit = (val: number, unit: string) => {
   return { val, base: 'un' };
 };
 
+type UnitCategory = 'weight' | 'volume' | 'unit';
+
 const IngredientCostCalculator = ({
   ingredientName,
   recipeQuantityStr,
@@ -55,17 +57,35 @@ const IngredientCostCalculator = ({
 }: IngredientCostCalculatorProps) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [purchaseQtyStr, setPurchaseQtyStr] = useState(initialData ? `${initialData.purchase_quantity}${initialData.purchase_unit}` : '');
+  
+  // Tenta inferir a categoria inicial
+  const getInitialCategory = (): UnitCategory => {
+    if (!initialData) {
+      const rQty = parseQuantity(recipeQuantityStr);
+      const base = convertToSmallestUnit(rQty.val, rQty.unit).base;
+      if (base === 'g') return 'weight';
+      if (base === 'ml') return 'volume';
+      return 'unit';
+    }
+    const base = convertToSmallestUnit(initialData.purchase_quantity, initialData.purchase_unit).base;
+    if (base === 'g') return 'weight';
+    if (base === 'ml') return 'volume';
+    return 'unit';
+  };
+
+  const [unitCategory, setUnitCategory] = useState<UnitCategory>(getInitialCategory());
+  const [purchaseQtyValue, setPurchaseQtyValue] = useState(initialData ? initialData.purchase_quantity.toString() : '');
+  const [purchaseUnit, setPurchaseUnit] = useState(initialData ? initialData.purchase_unit : '');
   const [purchasePriceStr, setPurchasePriceStr] = useState(initialData ? initialData.purchase_price.toFixed(2).replace('.', ',') : '');
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
 
   useEffect(() => {
-    const pQty = parseQuantity(purchaseQtyStr);
+    const pVal = parseFloat(purchaseQtyValue.replace(',', '.'));
     const pPrice = parseFloat(purchasePriceStr.replace(',', '.'));
     const rQty = parseQuantity(recipeQuantityStr);
 
-    if (pQty.val > 0 && pPrice > 0 && rQty.val > 0) {
-      const pBase = convertToSmallestUnit(pQty.val, pQty.unit);
+    if (pVal > 0 && pPrice > 0 && rQty.val > 0 && purchaseUnit) {
+      const pBase = convertToSmallestUnit(pVal, purchaseUnit);
       const rBase = convertToSmallestUnit(rQty.val, rQty.unit);
 
       // Só calcula se as unidades forem compatíveis (peso com peso, vol com vol, un com un)
@@ -78,14 +98,14 @@ const IngredientCostCalculator = ({
     } else {
       setCalculatedCost(null);
     }
-  }, [purchaseQtyStr, purchasePriceStr, recipeQuantityStr]);
+  }, [purchaseQtyValue, purchaseUnit, purchasePriceStr, recipeQuantityStr]);
 
   const handleSave = async () => {
     if (!user) return;
-    const pQty = parseQuantity(purchaseQtyStr);
+    const pVal = parseFloat(purchaseQtyValue.replace(',', '.'));
     const pPrice = parseFloat(purchasePriceStr.replace(',', '.'));
 
-    if (pQty.val <= 0 || isNaN(pPrice)) {
+    if (pVal <= 0 || isNaN(pPrice) || !purchaseUnit) {
       toast.error(t('recipe.costCalculator.invalidQuantity'));
       return;
     }
@@ -96,8 +116,8 @@ const IngredientCostCalculator = ({
       user_id: user.id,
       recipe_id: recipeId,
       ingredient_name: ingredientName,
-      purchase_quantity: pQty.val,
-      purchase_unit: pQty.unit,
+      purchase_quantity: pVal,
+      purchase_unit: purchaseUnit,
       purchase_price: pPrice,
       calculated_cost: cost
     }, { onConflict: 'user_id,recipe_id,ingredient_name' } as any);
@@ -110,6 +130,12 @@ const IngredientCostCalculator = ({
       onSave();
       onClose();
     }
+  };
+
+  const unitsByCategory = {
+    weight: ['g', 'kg'],
+    volume: ['ml', 'l'],
+    unit: ['un', 'dúzia']
   };
 
   return (
@@ -143,18 +169,62 @@ const IngredientCostCalculator = ({
           </button>
         </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">
-            {t('recipe.costCalculator.purchaseQuantity')}
-          </label>
-          <input
-            type="text"
-            value={purchaseQtyStr}
-            onChange={(e) => setPurchaseQtyStr(e.target.value)}
-            placeholder={t('recipe.costCalculator.unitPlaceholder')}
-            className="w-full bg-muted/50 border-none rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
-          />
+      <div className="space-y-6">
+        {/* Seletor de Categoria de Unidade */}
+        <div className="flex p-1 bg-muted rounded-xl">
+          {(['weight', 'volume', 'unit'] as const).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                setUnitCategory(cat);
+                setPurchaseUnit(unitsByCategory[cat][0]);
+              }}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                unitCategory === cat 
+                  ? 'bg-card text-primary shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {cat === 'weight' ? 'Peso' : cat === 'volume' ? 'Volume' : 'Unidade'}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">
+              {t('recipe.costCalculator.purchaseQuantity')}
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={purchaseQtyValue}
+              onChange={(e) => setPurchaseQtyValue(e.target.value.replace(/[^\d.,]/g, ''))}
+              placeholder="0,00"
+              className="w-full bg-muted/50 border-none rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">
+              Unidade
+            </label>
+            <div className="flex gap-2 h-[44px]">
+              {unitsByCategory[unitCategory].map((u) => (
+                <button
+                  key={u}
+                  onClick={() => setPurchaseUnit(u)}
+                  className={`flex-1 rounded-xl text-sm font-bold transition-all border-2 ${
+                    purchaseUnit === u 
+                      ? 'bg-primary/10 border-primary text-primary' 
+                      : 'bg-muted/50 border-transparent text-muted-foreground hover:border-muted-foreground/30'
+                  }`}
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div>
@@ -165,6 +235,7 @@ const IngredientCostCalculator = ({
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">R$</span>
             <input
               type="text"
+              inputMode="decimal"
               value={purchasePriceStr}
               onChange={(e) => setPurchasePriceStr(e.target.value.replace(/[^\d,]/g, ''))}
               placeholder="0,00"
@@ -186,10 +257,10 @@ const IngredientCostCalculator = ({
                 : '--'}
             </span>
           </div>
-          {calculatedCost === null && purchaseQtyStr && (
+          {calculatedCost === null && purchaseQtyValue && purchaseUnit && (
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-amber-600 font-medium">
               <AlertCircle className="h-3 w-3" />
-              <span>Unidades incompatíveis ou formato inválido</span>
+              <span>Unidades incompatíveis com a receita ({parseQuantity(recipeQuantityStr).unit})</span>
             </div>
           )}
         </div>
