@@ -41,6 +41,9 @@ const CookingMode = ({ recipeName, steps, ingredients, onClose }: CookingModePro
       setView('steps');
     } else if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
+    } else {
+      // It's the last step, finish and close
+      onClose();
     }
   };
 
