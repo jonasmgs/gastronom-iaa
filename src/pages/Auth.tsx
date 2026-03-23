@@ -29,10 +29,22 @@ const Auth = () => {
   const handleSocialLogin = async (provider: 'apple' | 'google') => {
     setSocialLoading(provider);
     try {
+      // Definir o redirect correto com base no ambiente
+      // Para web: window.location.origin
+      // Para nativo (Android/iOS): com.gastronom.ia://auth/callback
+      const isNative = window.location.origin.includes('localhost') === false && 
+                       (window.location.protocol === 'capacitor:' || 
+                        window.location.protocol === 'http:');
+      
+      const redirectTo = isNative 
+        ? 'com.gastronom.ia://auth/callback' 
+        : `${window.location.origin}/auth/callback`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo,
+          skipBrowserRedirect: false, // Forçar redirecionamento no navegador/WebView
         },
       });
       if (error) throw error;

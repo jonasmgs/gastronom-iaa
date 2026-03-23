@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import { Toaster } from "@/components/ui/toaster";
 import EmbeddedCheckoutModal from '@/components/EmbeddedCheckoutModal';
 import { InstallPrompt } from '@/components/InstallPrompt';
@@ -41,7 +42,28 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 const AppRoutes = () => {
+  const { session } = useAuth();
   useEffect(() => { initTheme(); }, []);
+
+  useEffect(() => {
+    // Configurar o listener para URLs de redirecionamento (Deep Links) do Capacitor
+    const handleDeepLink = async () => {
+      CapApp.addListener('appUrlOpen', (event: any) => {
+        // Exemplo de URL: com.gastronom.ia://auth/callback#access_token=...
+        const url = new URL(event.url);
+        const path = url.pathname + url.search + url.hash;
+        
+        // Se a URL contém o callback de auth, o Supabase vai processar automaticamente
+        // via localStorage/session se o cliente estiver configurado corretamente.
+        console.log('App opened with URL:', event.url);
+      });
+    };
+
+    handleDeepLink();
+    return () => {
+      CapApp.removeAllListeners();
+    };
+  }, []);
 
   return (
     <ErrorBoundary>
