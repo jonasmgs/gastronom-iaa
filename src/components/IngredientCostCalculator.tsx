@@ -272,9 +272,10 @@ const IngredientCostCalculator = ({
           <Save className="h-5 w-5" />
           {t('recipe.costCalculator.save')}
         </button>
-      </motion.div>
-    </div>
-  );
+      </div>
+    </motion.div>
+  </div>
+);
 };
 
 export default IngredientCostCalculator;

@@ -118,7 +118,7 @@ const Index = () => {
         ingredients: safeIngredients,
         preparation,
         calories_total: recipe.calories_total || 0,
-        nutrition_info: {
+        nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
           chef_tips: recipe.chef_tips || '',
           difficulty: recipe.difficulty || '',
@@ -127,7 +127,7 @@ const Index = () => {
           servings: recipe.servings || servings,
           steps: safeSteps,
           dietary_tags: recipe.dietary_tags || [],
-        },
+        }),
       }).select().single();
 
       if (saveErr) throw saveErr;

@@ -241,7 +241,7 @@ const RecipeResult = () => {
         ingredients: transformed.ingredients || [],
         preparation,
         calories_total: transformed.calories_total || 0,
-        nutrition_info: {
+        nutrition_info: JSON.stringify({
           nutrition_info: transformed.nutrition_info || '',
           chef_tips: transformed.chef_tips || '',
           difficulty: transformed.difficulty || '',
@@ -251,7 +251,7 @@ const RecipeResult = () => {
           steps: transformed.steps || [],
           dietary_tags: transformed.dietary_tags || [],
           substitutions_made: transformed.substitutions_made || '',
-        },
+        }),
       }).select().single();
 
       if (saveErr) throw saveErr;
@@ -593,8 +593,6 @@ const RecipeResult = () => {
         )}
       </AnimatePresence>
 
-      <BottomNav />
-
       <AnimatePresence>
         {activeIngredientForCost && (
           <IngredientCostCalculator
@@ -607,6 +605,8 @@ const RecipeResult = () => {
           />
         )}
       </AnimatePresence>
+
+      <BottomNav />
     </main>
   );
 };
