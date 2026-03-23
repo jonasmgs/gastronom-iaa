@@ -159,6 +159,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     "Responda sempre em portugues do Brasil.",
     "Retorne apenas JSON valido, sem markdown e sem texto extra.",
     "A receita deve ser saborosa, coerente e tecnicamente correta.",
+    "Nao utilize unidades caseiras como 'xicara' ou 'colher'. Utilize sempre medidas precisas de peso (g, kg), volume (ml, l) ou unidades inteiras (un, fatia, dente).",
     "Todos os ingredientes citados no preparo devem existir na lista de ingredientes.",
     "O preparo precisa ter pelo menos 4 passos completos.",
     "Informe calorias realistas e um resumo nutricional por porcao.",
