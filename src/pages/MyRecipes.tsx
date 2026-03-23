@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Flame, Trash2, BookOpen, Eye, Loader2, AlertCircle } from 'lucide-react';
+import { Flame, Trash2, BookOpen, Eye, Loader2, AlertCircle, ShoppingCart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useProfile } from '@/hooks/useProfile';
@@ -168,6 +168,14 @@ const MyRecipes = () => {
                 )}
               </Suspense>
             )}
+
+            <button
+              onClick={() => navigate('/shopping-list')}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 py-3 text-sm font-semibold text-primary shadow-sm transition-all active:scale-[0.98]"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {t('nav.shopping')}
+            </button>
 
             <button
               onClick={() => void handleOpenBook()}
