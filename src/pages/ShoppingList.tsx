@@ -18,6 +18,19 @@ interface ShoppingItem {
 
 import { hapticsImpactLight, hapticsSuccess, hapticsImpactMedium } from '@/lib/haptics';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { AlertCircle } from 'lucide-react';
+
 const ShoppingList = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -26,6 +39,7 @@ const ShoppingList = () => {
   const [newItemName, setNewItemName] = useState('');
   const [newItemQty, setNewItemQty] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     const list = localStorage.getItem('shopping_list');
@@ -177,10 +191,34 @@ const ShoppingList = () => {
 
         {/* List Actions */}
         {items.some(item => item.checked) && (
-          <button onClick={clearChecked} className="flex items-center gap-2 text-xs font-bold text-destructive uppercase tracking-wider mx-auto bg-destructive/10 px-4 py-2 rounded-full">
-            <Trash2 className="h-3.5 w-3.5" />
-            {t('shopping.clearChecked')}
-          </button>
+          <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+            <AlertDialogTrigger asChild>
+              <button className="flex items-center gap-2 text-xs font-bold text-destructive uppercase tracking-wider mx-auto bg-destructive/10 px-4 py-2 rounded-full active:scale-95 transition-all">
+                <Trash2 className="h-3.5 w-3.5" />
+                {t('shopping.clearChecked')}
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-3xl border-none shadow-2xl">
+              <AlertDialogHeader>
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                  <AlertCircle className="h-6 w-6 text-destructive" />
+                </div>
+                <AlertDialogTitle className="text-center">{t('common.confirm')}</AlertDialogTitle>
+                <AlertDialogDescription className="text-center">
+                  {t('shopping.confirmClear')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-row gap-2 mt-4">
+                <AlertDialogCancel className="flex-1 rounded-xl border-none bg-muted text-foreground hover:bg-muted/80">{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={clearChecked}
+                  className="flex-1 rounded-xl bg-destructive text-white hover:bg-destructive/90"
+                >
+                  {t('common.delete')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
 
         {/* List */}

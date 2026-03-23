@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Flame, Trash2, BookOpen, Eye, Loader2 } from 'lucide-react';
+import { Flame, Trash2, BookOpen, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useProfile } from '@/hooks/useProfile';
@@ -10,6 +10,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import type { Tables } from '@/integrations/supabase/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const RecipeBookGenerator = lazy(() => import('@/components/RecipeBookGenerator'));
 const RecipeBookViewer = lazy(() => import('@/components/RecipeBookViewer'));
@@ -27,6 +38,7 @@ const MyRecipes = () => {
   const [loading, setLoading] = useState(true);
   const [bookLoading, setBookLoading] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
 
   const dateLocale = i18n.language?.startsWith('pt')
     ? 'pt-BR'
@@ -111,6 +123,7 @@ const MyRecipes = () => {
       setBookRecipes((prev) => prev.filter((r) => r.id !== id));
       toast.success(t('recipes.deleted'));
     }
+    setRecipeToDelete(null);
   };
 
   const handleOpenBook = async () => {
@@ -196,13 +209,45 @@ const MyRecipes = () => {
                     <time dateTime={recipe.created_at}>{new Date(recipe.created_at).toLocaleDateString(dateLocale)}</time>
                   </div>
                 </button>
-                <button
-                  onClick={() => void handleDelete(recipe.id)}
-                  aria-label={`${t('common.delete')} ${recipe.recipe_name}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/recipe/${recipe.id}`); }}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  
+                  <AlertDialog open={recipeToDelete === recipe.id} onOpenChange={(open) => !open && setRecipeToDelete(null)}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRecipeToDelete(recipe.id); }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-3xl border-none shadow-2xl">
+                      <AlertDialogHeader>
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                          <AlertCircle className="h-6 w-6 text-destructive" />
+                        </div>
+                        <AlertDialogTitle className="text-center">{t('common.confirm')}</AlertDialogTitle>
+                        <AlertDialogDescription className="text-center">
+                          {t('recipes.confirmDelete')}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-row gap-2 mt-4">
+                        <AlertDialogCancel className="flex-1 rounded-xl border-none bg-muted text-foreground hover:bg-muted/80">{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(recipe.id)}
+                          className="flex-1 rounded-xl bg-destructive text-white hover:bg-destructive/90"
+                        >
+                          {t('common.delete')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </motion.li>
             ))}
           </ul>

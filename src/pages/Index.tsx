@@ -41,12 +41,21 @@ const Index = () => {
   const [servings, setServings] = useState<number>(2);
   const [showServingsModal, setShowServingsModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [recentIngredients, setRecentIngredients] = useState<string[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBg((prev) => (prev + 1) % bgImages.length);
     }, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('last_ingredients');
+    if (saved) setIngredients(JSON.parse(saved));
+    
+    const recent = localStorage.getItem('recent_ingredients');
+    if (recent) setRecentIngredients(JSON.parse(recent));
   }, []);
 
   const handleGenerateClick = () => {
@@ -64,6 +73,15 @@ const Index = () => {
   };
 
   const generateRecipe = async () => {
+    if (!user) return;
+    
+    // Salvar nos recentes
+    const updatedRecent = Array.from(new Set([...ingredients, ...recentIngredients])).slice(0, 15);
+    setRecentIngredients(updatedRecent);
+    localStorage.setItem('recent_ingredients', JSON.stringify(updatedRecent));
+    localStorage.setItem('last_ingredients', JSON.stringify(ingredients));
+
+    setShowServingsModal(false);
     if (!user) return;
     setShowServingsModal(false);
     setGenerating(true);
@@ -189,6 +207,23 @@ const Index = () => {
             onDescriptionChange={setDescription}
             showDescription
           />
+
+          {recentIngredients.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">{t('home.recentIngredients')}</p>
+              <div className="flex flex-wrap gap-2">
+                {recentIngredients.filter(i => !ingredients.includes(i)).slice(0, 8).map((ing) => (
+                  <button
+                    key={ing}
+                    onClick={() => setIngredients([...ingredients, ing])}
+                    className="bg-muted/50 hover:bg-muted text-foreground/80 text-xs px-3 py-1.5 rounded-full border border-border transition-all active:scale-95"
+                  >
+                    + {ing}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Ingredients List (visual cards) */}
