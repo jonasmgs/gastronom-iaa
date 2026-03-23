@@ -60,7 +60,7 @@ const CookingMode = ({ recipeName, steps, ingredients, onClose }: CookingModePro
       initial={{ opacity: 0, y: '100%' }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
-      className="fixed inset-0 z-50 bg-background flex flex-col"
+      className="fixed inset-0 z-[70] bg-background flex flex-col"
     >
       {/* Header */}
       <header className="flex items-center justify-between px-6 pt-12 pb-4 border-b">

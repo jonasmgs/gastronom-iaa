@@ -113,26 +113,35 @@ const IngredientCostCalculator = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="fixed inset-x-0 bottom-0 z-50 p-6 bg-card border-t border-border rounded-t-[32px] shadow-2xl"
-    >
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Calculator className="h-5 w-5" />
+    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+      />
+      <motion.div
+        initial={{ opacity: 0, y: '100%' }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="relative w-full p-6 bg-card border-t border-border rounded-t-[32px] shadow-2xl safe-area-bottom"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <Calculator className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground">{t('recipe.costCalculator.title')}</h3>
+              <p className="text-xs text-muted-foreground">{ingredientName}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-foreground">{t('recipe.costCalculator.title')}</h3>
-            <p className="text-xs text-muted-foreground">{ingredientName}</p>
-          </div>
+          <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
 
       <div className="space-y-4">
         <div>
@@ -192,8 +201,8 @@ const IngredientCostCalculator = ({
           <Save className="h-5 w-5" />
           {t('recipe.costCalculator.save')}
         </button>
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 };
 
