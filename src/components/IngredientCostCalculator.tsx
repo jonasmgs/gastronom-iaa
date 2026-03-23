@@ -29,12 +29,19 @@ const parseQuantity = (str: string) => {
 };
 
 const convertToSmallestUnit = (val: number, unit: string) => {
-  const u = unit.toLowerCase();
-  if (u.includes('kg') || u === 'quilo' || u === 'quilograma') return { val: val * 1000, base: 'g' };
-  if (u === 'l' || u === 'litro') return { val: val * 1000, base: 'ml' };
+  const u = unit.toLowerCase().trim();
+  // Peso
+  if (u.includes('kg') || u.includes('quilo') || u.includes('quilograma')) return { val: val * 1000, base: 'g' };
+  if (u.startsWith('g') || u.includes('grama')) return { val, base: 'g' };
+  
+  // Volume
+  if (u === 'l' || u.startsWith('litro')) return { val: val * 1000, base: 'ml' };
+  if (u.includes('ml') || u.includes('mililitro')) return { val, base: 'ml' };
+  
+  // Unidade
   if (u.includes('dúzia') || u.includes('duzia')) return { val: val * 12, base: 'un' };
-  if (u === 'g' || u === 'grama') return { val, base: 'g' };
-  if (u === 'ml' || u === 'mililitro') return { val, base: 'ml' };
+  if (u.includes('unidade') || u.includes('un') || u === 'un') return { val, base: 'un' };
+  
   return { val, base: 'un' };
 };
 
