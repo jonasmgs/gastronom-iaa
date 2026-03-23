@@ -104,6 +104,7 @@ const RecipeResult = () => {
       setAddingToCart(false);
       hapticsSuccess();
       toast.success(t('recipe.addedToShoppingList'));
+      navigate('/shopping-list');
     }, 500);
   };
 
