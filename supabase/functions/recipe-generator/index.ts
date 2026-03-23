@@ -179,9 +179,9 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   const existingRecipe = typeof body.existing_recipe === "string" ? body.existing_recipe.trim().slice(0, 5000) : "";
 
   const activeFilters = [
-    filters.vegan ? "vegana" : null,
-    filters.glutenFree ? "sem gluten" : null,
-    filters.lactoseFree ? "sem lactose" : null,
+    filters.vegan ? "VEGANA" : null,
+    filters.glutenFree ? "SEM GLÚTEN" : null,
+    filters.lactoseFree ? "SEM LACTOSE" : null,
   ].filter(Boolean).join(", ");
 
   const schema = `{
@@ -190,7 +190,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   "prep_time": "string",
   "cook_time": "string",
   "servings": 2,
-  "dietary_tags": ["string"],
+  "dietary_tags": ["Vegana", "Sem Glúten", "Sem Lactose"],
   "ingredients": [
     { "name": "string", "quantity": "string", "calories": 0, "tip": "string" }
   ],
@@ -208,6 +208,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     "Responda sempre em portugues do Brasil.",
     "Retorne apenas JSON valido, sem markdown e sem texto extra.",
     "A receita deve ser saborosa, coerente e tecnicamente correta.",
+    "IMPORTANTE: Sempre preencha o campo 'dietary_tags' com as tags apropriadas (ex: ['Vegana', 'Sem Glúten']) se a receita atender a esses critérios.",
     "REGRAS CRÍTICAS DE UNIDADES (PROIBIDO DESCUMPRIR):",
     "1. O campo 'quantity' deve conter EXCLUSIVAMENTE: gramas (g), quilos (kg), mililitros (ml) ou litros (l).",
     "2. É TERMINANTEMENTE PROIBIDO usar as palavras: 'unidade', 'un', 'fatia', 'dente', 'xícara', 'colher', 'pitada', 'maço' ou qualquer outra medida não métrica.",
@@ -231,12 +232,12 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
       userPrompt: [
         "Transforme a receita abaixo e devolva no schema pedido.",
         existingRecipe ? `Receita base: ${existingRecipe}` : "",
-        activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
+        activeFilters ? `Filtros OBRIGATÓRIOS (A receita DEVE ser assim): ${activeFilters}.` : "",
         category ? `Categoria desejada: ${category}.` : "",
         complexity ? `Complexidade desejada: ${complexity}.` : "",
         `Rendimento obrigatorio: ${servings} porcoes.`,
         `Schema JSON: ${schema}`,
-        "IMPORTANTE: NUNCA use unidades como 'xícara', 'colher' ou 'unidade'. Converta TUDO para gramas (g) ou mililitros (ml).",
+        "ATENÇÃO: Converta TUDO para gramas (g) ou mililitros (ml). PROIBIDO xícara, colher, unidade, fatia, etc.",
       ].filter(Boolean).join("\n\n"),
     };
   }
@@ -249,10 +250,10 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
       description ? `Descricao do prato desejado: ${description}.` : "",
       category ? `Categoria desejada: ${category}.` : "",
       complexity ? `Complexidade desejada: ${complexity}.` : "",
-      activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
+      activeFilters ? `Filtros OBRIGATÓRIOS (A receita DEVE ser assim): ${activeFilters}.` : "",
       `Rendimento obrigatorio: ${servings} porcoes.`,
       `Schema JSON: ${schema}`,
-      "IMPORTANTE: NUNCA use unidades como 'xícara', 'colher' ou 'unidade'. Converta TUDO para gramas (g) ou mililitros (ml).",
+      "ATENÇÃO: Converta TUDO para gramas (g) ou mililitros (ml). PROIBIDO xícara, colher, unidade, fatia, etc.",
     ].filter(Boolean).join("\n\n"),
   };
 }
