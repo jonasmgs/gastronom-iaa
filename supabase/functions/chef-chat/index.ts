@@ -127,7 +127,7 @@ serve(async (req) => {
     }));
 
     const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${googleAiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${googleAiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,7 +152,7 @@ serve(async (req) => {
     }
 
     const data = await aiResponse.json();
-    const answer = data.candidates?.[0]?.content?.parts
+    let answer = data.candidates?.[0]?.content?.parts
       ?.map((part: { text?: string }) => part.text ?? "")
       .join("")
       .trim();
@@ -161,6 +161,19 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "A IA nao retornou resposta" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Programmatic cleanup for substitutions in the chat
+    if (answer.includes("<<<SUBSTITUIR:")) {
+      const forbidden = ["unidade", "un", "xícara", "colher", "fatia", "dente"];
+      forbidden.forEach(u => {
+        if (answer.toLowerCase().includes(u)) {
+          // Attempt to convert common units in substitutions too
+          answer = answer.replace(/(\d+)\s*xícara/gi, "$1x200g");
+          answer = answer.replace(/(\d+)\s*colher de sopa/gi, "$1x15g");
+          answer = answer.replace(/(\d+)\s*unidade/gi, "$1x50g");
+        }
       });
     }
 

@@ -70,16 +70,38 @@ function normalizeIngredients(value: unknown): Ingredient[] {
       let quantity = String(record.quantity ?? "").trim().toLowerCase();
       let tip = String(record.tip ?? "").trim();
 
-      // Programmatic cleanup for common non-metric units
-      if (quantity.includes("unidade") || quantity.includes(" un") || quantity.endsWith(" un")) {
-        // If the LLM failed, we try to move the info to the tip and set a dummy weight if possible,
-        // but better to just let the prompt handle it. 
-        // Here we just make sure we are not introducing invalid state.
+      // FORCED PROGRAMMATIC CLEANUP: If the LLM still sends units despite the prompt
+      const forbiddenUnits = [
+        "unidade", "unidades", " un", "un ", "un.", "fatia", "fatias", 
+        "dente", "dentes", "xícara", "xícaras", "colher", "colheres", 
+        "pitada", "maço", "maços", "unid"
+      ];
+
+      const hasForbidden = forbiddenUnits.some(unit => quantity.includes(unit));
+      
+      if (hasForbidden) {
+        // Move the original info to the tip to help the user
+        if (!tip) tip = `Original: ${quantity}`;
+        
+        // Attempt to extract a number and convert to a metric value
+        const numMatch = quantity.match(/(\d+([.,]\d+)?)/);
+        if (numMatch) {
+          const num = parseFloat(numMatch[1].replace(',', '.'));
+          // Very rough conversion logic just to avoid 'un'
+          if (quantity.includes("ovo")) quantity = `${num * 50}g`;
+          else if (quantity.includes("alho")) quantity = `${num * 5}g`;
+          else if (quantity.includes("cebola")) quantity = `${num * 150}g`;
+          else if (quantity.includes("xícara")) quantity = `${num * 200}g`;
+          else if (quantity.includes("colher")) quantity = `${num * 15}g`;
+          else quantity = `${num * 100}g`; // Default fallback
+        } else {
+          quantity = "100g"; // Hard fallback
+        }
       }
 
       return {
         name: String(record.name ?? "").trim(),
-        quantity: String(record.quantity ?? "").trim(),
+        quantity: quantity,
         calories: Number(record.calories ?? 0) || 0,
         tip: tip,
       };
@@ -255,7 +277,7 @@ serve(async (req) => {
     }
 
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
-    const model = "gemini-2.5-flash-lite";
+    const model = "gemini-1.5-flash";
 
     const aiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
