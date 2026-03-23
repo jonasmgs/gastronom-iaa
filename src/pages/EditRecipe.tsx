@@ -113,7 +113,7 @@ const EditRecipe = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-24 relative overflow-hidden" role="main">
+    <main className="min-h-screen bg-background pb-40 relative overflow-hidden" role="main">
       <div className="absolute inset-0 z-0 h-64" aria-hidden="true">
         <img src={bgIngredients3} alt="" className="h-64 w-full object-cover opacity-20" />
         <div className="absolute inset-0 h-64 bg-gradient-to-b from-transparent to-background" />

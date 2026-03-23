@@ -141,7 +141,7 @@ const Settings = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-24" role="main">
+    <main className="min-h-screen bg-background pb-40" role="main">
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 ios-blur">
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
           <button onClick={() => navigate(-1)} className="rounded-full p-1.5 text-muted-foreground hover:bg-accent" aria-label={t('common.cancel')}>

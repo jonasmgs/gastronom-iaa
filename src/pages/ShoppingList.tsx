@@ -128,7 +128,7 @@ const ShoppingList = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-32">
+    <main className="min-h-screen bg-background pb-40">
       <header className="px-6 pt-14 pb-6 sticky top-0 bg-background/80 backdrop-blur-md z-10 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">

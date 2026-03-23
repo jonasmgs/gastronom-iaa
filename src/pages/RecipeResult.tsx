@@ -269,7 +269,7 @@ const RecipeResult = () => {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background pb-24" role="main">
+      <main className="min-h-screen bg-background pb-40" role="main">
         <div className="px-5 pt-14 space-y-4" role="status" aria-label={t('common.loading')}>
           <div className="h-8 w-48 animate-pulse rounded-xl bg-muted" />
           <div className="h-6 w-24 animate-pulse rounded-full bg-muted" />
@@ -304,7 +304,7 @@ const RecipeResult = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-24 relative" role="main">
+    <main className="min-h-screen bg-background pb-40 relative" role="main">
       {/* Background */}
       <div className="absolute inset-0 z-0" aria-hidden="true">
         <img src={bgUtensils} alt="" className="h-52 w-full object-cover opacity-15" />

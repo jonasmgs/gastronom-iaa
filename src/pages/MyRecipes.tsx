@@ -137,7 +137,7 @@ const MyRecipes = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-24" role="main">
+    <main className="min-h-screen bg-background pb-40" role="main">
       <header className="px-5 pt-14 pb-4">
         <h1 className="text-2xl font-bold text-foreground">{t('recipes.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('recipes.count', { count: recipes.length })}</p>

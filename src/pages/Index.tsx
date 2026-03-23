@@ -147,7 +147,7 @@ const Index = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-24 relative overflow-hidden" role="main">
+    <main className="min-h-screen bg-background pb-40 relative overflow-hidden" role="main">
       {/* Rotating Background Images */}
       <div className="absolute inset-0 z-0 h-80" aria-hidden="true">
         <AnimatePresence mode="wait">
