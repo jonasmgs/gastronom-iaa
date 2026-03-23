@@ -224,13 +224,24 @@ const ShoppingList = () => {
         {/* List */}
         <div className="space-y-3">
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-16 w-full bg-muted/50 rounded-2xl animate-pulse" />
+              ))}
+            </div>
           ) : items.length === 0 ? (
-            <div className="text-center py-20 space-y-4">
-              <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mx-auto">
-                <ShoppingCart className="h-10 w-10 text-muted-foreground" />
+            <div className="text-center py-20 space-y-4 px-10">
+              <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShoppingCart className="h-10 w-10 text-muted-foreground opacity-30" />
               </div>
-              <p className="text-muted-foreground font-medium">{t('shopping.empty')}</p>
+              <p className="text-base font-bold text-foreground mb-2">{t('shopping.empty')}</p>
+              <p className="text-sm text-muted-foreground mb-8">{t('shopping.emptyDesc', 'Sua lista está vazia. Adicione itens manualmente ou a partir de uma receita!')}</p>
+              <button
+                onClick={() => navigate('/recipes')}
+                className="w-full border-2 border-primary text-primary py-4 rounded-2xl font-bold active:scale-[0.98] transition-all"
+              >
+                {t('nav.recipes')}
+              </button>
             </div>
           ) : (
             <AnimatePresence initial={false}>

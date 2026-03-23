@@ -183,13 +183,24 @@ const MyRecipes = () => {
 
       <section className="space-y-3 px-5" aria-label={t('recipes.title')}>
         {loading ? (
-          <div className="mt-16 flex flex-col items-center text-center text-muted-foreground">
-            <Loader2 className="mb-3 h-8 w-8 animate-spin opacity-50" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-20 w-full bg-muted/50 rounded-2xl animate-pulse" />
+            ))}
           </div>
         ) : recipes.length === 0 ? (
-          <div className="mt-16 flex flex-col items-center text-center text-muted-foreground">
-            <BookOpen className="mb-3 h-12 w-12 opacity-30" aria-hidden="true" />
-            <p className="text-sm">{t('recipes.noRecipes')}</p>
+          <div className="mt-16 flex flex-col items-center text-center text-muted-foreground px-10">
+            <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
+              <BookOpen className="h-10 w-10 opacity-30" aria-hidden="true" />
+            </div>
+            <p className="text-base font-bold text-foreground mb-2">{t('recipes.noRecipes')}</p>
+            <p className="text-sm text-muted-foreground mb-8">{t('recipes.noRecipesDesc', 'Você ainda não tem receitas salvas. Comece gerando uma agora!')}</p>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full bg-primary text-primary-foreground py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all"
+            >
+              {t('home.generateRecipe')}
+            </button>
           </div>
         ) : (
           <ul className="space-y-3" role="list">
