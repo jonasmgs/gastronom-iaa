@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, WheatOff, MilkOff, Loader2, Wand2, MessageCircle, Pencil } from 'lucide-react';
+import { ArrowLeft, Flame, Share2, Check, Clock, ChefHat, Users, Gauge, Leaf, WheatOff, MilkOff, Loader2, Wand2, MessageCircle, Pencil, Play, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -10,10 +10,12 @@ import { useTranslation } from 'react-i18next';
 import BottomNav from '@/components/BottomNav';
 import RecipeChat from '@/components/RecipeChat';
 import RecipeEditDrawer from '@/components/RecipeEditDrawer';
+import CookingMode from '@/components/CookingMode';
 import bgUtensils from '@/assets/bg-utensils.jpg';
 import type { Tables } from '@/integrations/supabase/types';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
 import type { Ingredient, RecipeGeneratorResponse, Step } from '@/types/recipe';
+import { hapticsImpactLight, hapticsSuccess, hapticsError } from '@/lib/haptics';
 
 function safeParseJSONArray<T>(data: unknown, fallback: T[] = []): T[] {
   if (Array.isArray(data)) return data as T[];
@@ -70,8 +72,37 @@ const RecipeResult = () => {
   const [filters, setFilters] = useState<DietaryFilters>({ vegan: false, glutenFree: false, lactoseFree: false });
   const [chatOpen, setChatOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [cookingModeOpen, setCookingModeOpen] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+
+  const addToShoppingList = () => {
+    if (!recipe) return;
+    setAddingToCart(true);
+    hapticsImpactLight();
+    const currentIngredients = safeParseJSONArray<Ingredient>(recipe.ingredients);
+    
+    const existingListStr = localStorage.getItem('shopping_list');
+    const existingList = existingListStr ? JSON.parse(existingListStr) : [];
+    
+    const newItems = currentIngredients.map(ing => ({
+      id: crypto.randomUUID(),
+      name: ing.name,
+      quantity: ing.quantity,
+      recipeName: recipe.recipe_name,
+      checked: false,
+      createdAt: new Date().toISOString()
+    }));
+    
+    localStorage.setItem('shopping_list', JSON.stringify([...existingList, ...newItems]));
+    
+    setTimeout(() => {
+      setAddingToCart(false);
+      hapticsSuccess();
+      toast.success(t('recipe.addedToShoppingList'));
+    }, 500);
+  };
 
   usePageTitle(recipe?.recipe_name);
 
@@ -97,6 +128,7 @@ const RecipeResult = () => {
 
   const handleShare = async () => {
     if (!recipe) return;
+    hapticsImpactLight();
     const shareIngredients = safeParseJSONArray<Ingredient>(recipe.ingredients);
     const shareMeta = safeParseJSONObject<RecipeMeta>(recipe.nutrition_info, {});
     const shareSteps = safeParseJSONArray<Step>(shareMeta.steps);
@@ -135,6 +167,7 @@ const RecipeResult = () => {
   };
 
   const toggleFilter = (key: keyof DietaryFilters) => {
+    hapticsImpactLight();
     setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -143,6 +176,7 @@ const RecipeResult = () => {
   const transformRecipe = async () => {
     if (!recipe || !hasActiveFilters || !user) return;
     setTransforming(true);
+    hapticsImpactLight();
     try {
       const transformIngredients = safeParseJSONArray<Ingredient>(recipe.ingredients);
       const transformMeta = safeParseJSONObject<RecipeMeta>(recipe.nutrition_info, {});
@@ -163,10 +197,10 @@ const RecipeResult = () => {
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: transformed.recipe_name,
-        ingredients: JSON.stringify(transformed.ingredients || []),
+        ingredients: transformed.ingredients || [],
         preparation,
         calories_total: transformed.calories_total || 0,
-        nutrition_info: JSON.stringify({
+        nutrition_info: {
           nutrition_info: transformed.nutrition_info || '',
           chef_tips: transformed.chef_tips || '',
           difficulty: transformed.difficulty || '',
@@ -176,14 +210,16 @@ const RecipeResult = () => {
           steps: transformed.steps || [],
           dietary_tags: transformed.dietary_tags || [],
           substitutions_made: transformed.substitutions_made || '',
-        }),
+        },
       }).select().single();
 
       if (saveErr) throw saveErr;
+      hapticsSuccess();
       toast.success(t('recipe.transformed'));
       navigate(`/recipe/${saved.id}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('recipe.transformError');
+      hapticsError();
       toast.error(message);
     } finally {
       setTransforming(false);
@@ -263,6 +299,21 @@ const RecipeResult = () => {
           )}
           <button onClick={handleShare} className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground" aria-label="Share">
             <Share2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setCookingModeOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all active:scale-95"
+            aria-label={t('recipe.cookingMode')}
+          >
+            <Play className="h-4 w-4" />
+          </button>
+          <button
+            onClick={addToShoppingList}
+            disabled={addingToCart}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground transition-all active:scale-95 disabled:opacity-50"
+            aria-label={t('recipe.addToShoppingList')}
+          >
+            {addingToCart ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
           </button>
         </header>
 
@@ -447,6 +498,17 @@ const RecipeResult = () => {
             preparation={recipe.preparation}
             onRecipeUpdated={fetchRecipe}
             onOpenChat={() => setChatOpen(true)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {cookingModeOpen && (
+          <CookingMode
+            recipeName={recipe.recipe_name}
+            ingredients={ingredients}
+            steps={steps}
+            onClose={() => setCookingModeOpen(false)}
           />
         )}
       </AnimatePresence>

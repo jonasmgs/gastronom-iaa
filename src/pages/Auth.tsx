@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { ChefHat, Mail, Lock, User, ArrowRight, Loader2, Apple } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -23,7 +23,26 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [currentBg, setCurrentBg] = useState(0);
+
+  const handleSocialLogin = async (provider: 'apple' | 'google') => {
+    setSocialLoading(provider);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('auth.unexpectedError');
+      toast.error(message);
+    } finally {
+      setSocialLoading(null);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -110,6 +129,32 @@ const Auth = () => {
           <h2 className="mb-6 text-center text-lg font-semibold text-card-foreground">{title}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Social Logins */}
+            <div className="grid grid-cols-1 gap-3 mb-6">
+              <button
+                type="button"
+                onClick={() => handleSocialLogin('apple')}
+                disabled={loading || !!socialLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-50"
+              >
+                {socialLoading === 'apple' ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Apple className="h-5 w-5" />
+                )}
+                {t('auth.continueWithApple')}
+              </button>
+            </div>
+
+            <div className="relative mb-6 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <span className="relative bg-background px-3 text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                {t('auth.orContinueWithEmail')}
+              </span>
+            </div>
+
             <AnimatePresence mode="wait">
               {mode === 'signup' && (
                 <motion.div key="name" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>

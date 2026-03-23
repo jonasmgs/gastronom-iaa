@@ -12,6 +12,7 @@ import SubscriptionPopup from '@/components/SubscriptionPopup';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import MyRecipes from "./pages/MyRecipes";
+import ShoppingList from "./pages/ShoppingList";
 import RecipeResult from "./pages/RecipeResult";
 import EditRecipe from "./pages/EditRecipe";
 import Settings from "./pages/Settings";
@@ -49,7 +50,8 @@ const AppRoutes = () => {
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
         <Route path="/recipes" element={<ProtectedRoute><MyRecipes /></ProtectedRoute>} />
         <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
-        <Route path="/edit-recipe" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
+        <Route path="/recipe/edit/:id" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
+        <Route path="/shopping-list" element={<ProtectedRoute><ShoppingList /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />

@@ -10,6 +10,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSubscription } from '@/hooks/useSubscription';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { hapticsImpactMedium, hapticsSuccess, hapticsError } from '@/lib/haptics';
 import BottomNav from '@/components/BottomNav';
 import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -51,6 +52,7 @@ const Index = () => {
   const handleGenerateClick = () => {
     if (ingredients.length < 2) {
       toast.error(t('home.minIngredients'));
+      hapticsError();
       return;
     }
     // Paywall check: block if not subscribed
@@ -65,6 +67,7 @@ const Index = () => {
     if (!user) return;
     setShowServingsModal(false);
     setGenerating(true);
+    hapticsImpactMedium();
     try {
       console.log('[DEBUG] Iniciando geracao de receita...');
       console.log('[DEBUG] Ingredientes:', ingredients);
@@ -94,10 +97,10 @@ const Index = () => {
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: recipe.recipe_name,
-        ingredients: JSON.stringify(safeIngredients),
+        ingredients: safeIngredients,
         preparation,
         calories_total: recipe.calories_total || 0,
-        nutrition_info: JSON.stringify({
+        nutrition_info: {
           nutrition_info: recipe.nutrition_info || '',
           chef_tips: recipe.chef_tips || '',
           difficulty: recipe.difficulty || '',
@@ -106,10 +109,11 @@ const Index = () => {
           servings: recipe.servings || servings,
           steps: safeSteps,
           dietary_tags: recipe.dietary_tags || [],
-        }),
+        },
       }).select().single();
 
       if (saveErr) throw saveErr;
+      hapticsSuccess();
       navigate(`/recipe/${saved.id}`);
     } catch (err: unknown) {
       console.error('[DEBUG] Erro completo:', err);
@@ -118,6 +122,7 @@ const Index = () => {
         description: 'Verifique o console para mais detalhes',
         duration: 5000,
       });
+      hapticsError();
     } finally {
       setGenerating(false);
     }
