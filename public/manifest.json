@@ -4,6 +4,8 @@
   "short_name": "GastronomIA",
   "description": "Receitas personalizadas com inteligência artificial",
   "iarc_rating_id": "4184",
+  "dir": "ltr",
+  "lang": "pt-BR",
   "start_url": "/",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "display": "standalone",
