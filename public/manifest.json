@@ -95,6 +95,13 @@
   ],
   "screenshots": [
     {
+      "src": "/screenshots/screenshot-desktop.jpg",
+      "sizes": "1920x1080",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Gastronom.IA no Desktop"
+    },
+    {
       "src": "/screenshots/screenshot1.jpg",
       "sizes": "1080x1920",
       "type": "image/jpeg",
