@@ -159,9 +159,9 @@ const Index = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background pb-40 relative overflow-hidden" role="main">
+    <main className="min-h-screen bg-background pb-36 sm:pb-40 relative overflow-hidden" role="main">
       {/* Rotating Background Images */}
-      <div className="absolute inset-0 z-0 h-80" aria-hidden="true">
+      <div className="absolute inset-0 z-0 h-64 sm:h-80" aria-hidden="true">
         <AnimatePresence mode="wait">
           <motion.img
             key={currentBg}
@@ -171,19 +171,19 @@ const Index = () => {
             animate={{ opacity: 0.45 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.2 }}
-            className="absolute inset-0 h-80 w-full object-cover"
+            className="absolute inset-0 h-64 sm:h-80 w-full object-cover"
           />
         </AnimatePresence>
-        <div className="absolute inset-0 h-80 bg-gradient-to-b from-background/30 via-background/60 to-background" />
+        <div className="absolute inset-0 h-64 sm:h-80 bg-gradient-to-b from-background/30 via-background/60 to-background" />
       </div>
 
       <div className="relative z-10">
-        <header className="px-5 pt-14 pb-4 flex items-start justify-between">
-          <div>
+        <header className="px-4 sm:px-5 pt-12 sm:pt-14 pb-4 flex items-start justify-between gap-2">
+          <div className="min-w-0">
             <p className="text-sm text-muted-foreground">{t('home.hello')}</p>
-            <h1 className="text-2xl font-bold text-foreground">{name || t('home.chef')} 👋</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{name || t('home.chef')} 👋</h1>
           </div>
-          <div className="pt-1">
+          <div className="pt-1 flex-shrink-0">
             <LanguageSelector />
           </div>
         </header>
@@ -207,7 +207,7 @@ const Index = () => {
         )}
 
         {/* Shared Filters */}
-        <div className="px-5 mb-4">
+        <div className="px-4 sm:px-5 mb-4">
           <RecipeFilters
             category={category}
             onCategoryChange={setCategory}

@@ -36,16 +36,18 @@ const BottomNav = () => {
             <button
               key={item.path}
               onClick={() => isLogout ? handleLogout() : navigate(item.path)}
-              className={`flex flex-1 min-w-0 flex-col items-center gap-0.5 py-1 text-[10px] transition-colors ${
+              className={`flex flex-1 min-w-0 flex-col items-center gap-1 py-3 px-1 text-[10px] transition-colors touch-manipulation ${
                 isLogout
-                  ? 'text-muted-foreground hover:text-destructive'
+                  ? 'text-muted-foreground hover:text-destructive active:text-destructive'
                   : active
                     ? 'text-primary'
-                    : 'text-muted-foreground'
+                    : 'text-muted-foreground active:text-primary'
               }`}
+              aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="truncate w-full text-center">{item.label}</span>
+              <item.icon className="h-6 w-6" />
+              <span className="truncate w-full text-center text-xs">{item.label}</span>
             </button>
           );
         })}

@@ -232,8 +232,8 @@ const RecipeResult = () => {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background pb-40" role="main">
-        <div className="px-5 pt-14 space-y-4" role="status" aria-label={t('common.loading')}>
+      <main className="min-h-screen bg-background pb-36 sm:pb-40" role="main">
+        <div className="px-4 sm:px-5 pt-12 sm:pt-14 space-y-4" role="status" aria-label={t('common.loading')}>
           <div className="h-8 w-48 animate-pulse rounded-xl bg-muted" />
           <div className="h-6 w-24 animate-pulse rounded-full bg-muted" />
           <div className="space-y-3 mt-6">
@@ -275,8 +275,8 @@ const RecipeResult = () => {
 
       <div className="relative z-10">
         {/* Header */}
-        <header className="flex items-center gap-3 px-5 pt-14 pb-4">
-          <button onClick={() => navigate('/')} className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground" aria-label={t('common.cancel')}>
+        <header className="flex items-center gap-3 px-4 sm:px-5 pt-12 sm:pt-14 pb-4">
+          <button onClick={() => navigate('/')} className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground touch-manipulation" aria-label={t('common.cancel')}>
             <ArrowLeft className="h-4 w-4" />
           </button>
           {editingName ? (

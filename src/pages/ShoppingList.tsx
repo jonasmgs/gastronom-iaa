@@ -163,23 +163,23 @@ const ShoppingList = () => {
         </div>
       </header>
 
-      <div className="px-6 py-6 space-y-6">
+      <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Add Item Form */}
         <form onSubmit={addItem} className="bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <input
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder={t('shopping.itemNamePlaceholder')}
-              className="flex-1 bg-muted/50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+              className="flex-1 min-w-0 bg-muted/50 border-none rounded-xl px-3 sm:px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
             />
             <input
               type="text"
               value={newItemQty}
               onChange={(e) => setNewItemQty(e.target.value)}
               placeholder={t('shopping.itemQtyPlaceholder')}
-              className="w-20 bg-muted/50 border-none rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+              className="w-16 sm:w-20 bg-muted/50 border-none rounded-xl px-2 sm:px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
             />
             <input
               type="text"

@@ -98,7 +98,7 @@ const Auth = () => {
   const title = mode === 'login' ? t('auth.login') : mode === 'signup' ? t('auth.signup') : t('auth.forgot');
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background p-4 overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-6 overflow-hidden">
       {/* Language selector */}
       <div className="absolute top-4 right-4 z-20">
         <LanguageSelector />
@@ -127,25 +127,25 @@ const Auth = () => {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-sm"
       >
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg">
-            <ChefHat className="h-8 w-8 text-primary-foreground" />
+        <div className="mb-6 sm:mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-primary shadow-lg">
+            <ChefHat className="h-7 w-7 sm:h-8 sm:w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('auth.appName')}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{t('auth.appName')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('auth.appSlogan')}</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-sm p-6 shadow-lg">
-          <h2 className="mb-6 text-center text-lg font-semibold text-card-foreground">{title}</h2>
+        <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-sm p-5 sm:p-6 shadow-lg">
+          <h2 className="mb-4 sm:mb-6 text-center text-base sm:text-lg font-semibold text-card-foreground">{title}</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {/* Social Logins */}
-            <div className="grid grid-cols-1 gap-3 mb-6">
+            <div className="grid grid-cols-1 gap-3 mb-4 sm:mb-6">
               <button
                 type="button"
                 onClick={() => handleSocialLogin('apple')}
                 disabled={loading || !!socialLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-50 min-h-[44px]"
               >
                 {socialLoading === 'apple' ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -159,7 +159,7 @@ const Auth = () => {
                 type="button"
                 onClick={() => handleSocialLogin('google')}
                 disabled={loading || !!socialLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-50 min-h-[44px]"
               >
                 {socialLoading === 'google' ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -201,7 +201,7 @@ const Auth = () => {
                 <motion.div key="name" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input type="text" placeholder={t('auth.name')} value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" required />
+                    <input type="text" placeholder={t('auth.name')} value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px]" required />
                   </div>
                 </motion.div>
               )}
@@ -209,36 +209,36 @@ const Auth = () => {
 
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input type="email" placeholder={t('auth.email')} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" required />
+              <input type="email" placeholder={t('auth.email')} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px]" required />
             </div>
 
             {mode !== 'forgot' && (
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input type="password" placeholder={t('auth.password')} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" required minLength={6} />
+                <input type="password" placeholder={t('auth.password')} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px]" required minLength={6} />
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50">
+            <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50 min-h-[44px]">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               {title}
             </button>
           </form>
 
-          <div className="mt-5 space-y-2 text-center text-xs text-muted-foreground">
+          <div className="mt-4 sm:mt-5 space-y-2 text-center text-xs text-muted-foreground">
             {mode === 'login' && (
               <>
-                <button onClick={() => setMode('forgot')} className="block w-full hover:text-foreground transition-colors">{t('auth.forgotPassword')}</button>
-                <button onClick={() => setMode('signup')} className="block w-full hover:text-foreground transition-colors">{t('auth.createAccount')}</button>
+                <button onClick={() => setMode('forgot')} className="block w-full hover:text-foreground transition-colors py-2">{t('auth.forgotPassword')}</button>
+                <button onClick={() => setMode('signup')} className="block w-full hover:text-foreground transition-colors py-2">{t('auth.createAccount')}</button>
               </>
             )}
             {mode === 'signup' && (
-              <button onClick={() => setMode('login')} className="block w-full hover:text-foreground transition-colors">{t('auth.haveAccount')}</button>
+              <button onClick={() => setMode('login')} className="block w-full hover:text-foreground transition-colors py-2">{t('auth.haveAccount')}</button>
             )}
             {mode === 'forgot' && (
-              <button onClick={() => setMode('login')} className="block w-full hover:text-foreground transition-colors">{t('auth.backToLogin')}</button>
+              <button onClick={() => setMode('login')} className="block w-full hover:text-foreground transition-colors py-2">{t('auth.backToLogin')}</button>
             )}
-            <Link to="/privacy" className="block w-full hover:text-foreground transition-colors">
+            <Link to="/privacy" className="block w-full hover:text-foreground transition-colors py-2">
               Politica de privacidade
             </Link>
           </div>
