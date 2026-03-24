@@ -9,6 +9,9 @@
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "lang": "pt-BR",
