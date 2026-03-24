@@ -24,6 +24,10 @@
   "theme_color": "#16a34a",
   "lang": "pt-BR",
   "scope": "/",
+  "scope_extensions": [
+    { "origin": "https://gastronom-iaa.vercel.app" },
+    { "origin": "https://*.supabase.co" }
+  ],
   "categories": [
     "food",
     "health",
