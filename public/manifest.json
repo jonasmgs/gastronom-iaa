@@ -26,6 +26,18 @@
     "lifestyle"
   ],
   "prefer_related_applications": false,
+  "notifications": {
+    "action_1": {
+      "action": "open_recipes",
+      "title": "Ver Receitas",
+      "icon": "/icons/icon-192.png"
+    },
+    "action_2": {
+      "action": "generate_recipe",
+      "title": "Gerar Nova",
+      "icon": "/icons/icon-192.png"
+    }
+  },
   "background_sync": {
     "sync_type": "online"
   },
