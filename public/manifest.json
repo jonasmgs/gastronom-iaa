@@ -19,6 +19,12 @@
     "lifestyle"
   ],
   "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "gastronom-ia",
+      "url": "/?recipe=%s"
+    }
+  ],
   "file_handlers": [
     {
       "action": "/",
