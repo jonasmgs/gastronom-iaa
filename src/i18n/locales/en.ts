@@ -77,6 +77,8 @@ export default {
     descriptionPlaceholder: 'E.g.: ham toast, mango ice cream, chocolate cake...',
     ingredientsLabel: 'Ingredients (optional)',
     recentIngredients: 'Recent Ingredients',
+    clearRecent: 'Clear all',
+    recentCleared: 'Recent ingredients cleared!',
   },
   recipes: {
     title: 'My Recipes',

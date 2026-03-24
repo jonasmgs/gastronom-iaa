@@ -78,6 +78,8 @@ export default {
     descriptionPlaceholder: 'Ex: torrada com presunto, sorvete de manga, bolo de chocolate...',
     ingredientsLabel: 'Ingredientes (opcional)',
     recentIngredients: 'Ingredientes Recentes',
+    clearRecent: 'Limpar todos',
+    recentCleared: 'Ingredientes recentes removidos!',
   },
   recipes: {
     title: 'Minhas Receitas',

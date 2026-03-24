@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, UtensilsCrossed, Crown } from 'lucide-react';
+import { Sparkles, Loader2, UtensilsCrossed, Crown, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,6 +70,18 @@ const Index = () => {
       return;
     }
     setShowServingsModal(true);
+  };
+
+  const removeRecentIngredient = (ing: string) => {
+    const updated = recentIngredients.filter(i => i !== ing);
+    setRecentIngredients(updated);
+    localStorage.setItem('recent_ingredients', JSON.stringify(updated));
+  };
+
+  const clearAllRecentIngredients = () => {
+    setRecentIngredients([]);
+    localStorage.setItem('recent_ingredients', JSON.stringify([]));
+    toast.success(t('home.recentCleared'));
   };
 
   const generateRecipe = async () => {
@@ -210,16 +222,32 @@ const Index = () => {
 
           {recentIngredients.length > 0 && (
             <div className="space-y-2 mt-4">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">{t('home.recentIngredients')}</p>
+              <div className="flex items-center justify-between pr-1">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">{t('home.recentIngredients')}</p>
+                <button
+                  onClick={clearAllRecentIngredients}
+                  className="text-[10px] text-muted-foreground/50 hover:text-destructive transition-colors flex items-center gap-1"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  {t('home.clearRecent')}
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {recentIngredients.filter(i => !ingredients.includes(i)).slice(0, 8).map((ing) => (
-                  <button
-                    key={ing}
-                    onClick={() => setIngredients([...ingredients, ing])}
-                    className="bg-muted/50 hover:bg-muted text-foreground/80 text-xs px-3 py-1.5 rounded-full border border-border transition-all active:scale-95"
-                  >
-                    + {ing}
-                  </button>
+                  <div key={ing} className="group relative">
+                    <button
+                      onClick={() => setIngredients([...ingredients, ing])}
+                      className="bg-muted/50 hover:bg-muted text-foreground/80 text-xs px-3 py-1.5 rounded-full border border-border transition-all active:scale-95 pr-7"
+                    >
+                      + {ing}
+                    </button>
+                    <button
+                      onClick={() => removeRecentIngredient(ing)}
+                      className="absolute -top-1 -right-1 h-4 w-4 bg-destructive/80 hover:bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
