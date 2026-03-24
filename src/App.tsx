@@ -21,6 +21,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import ShareHandler from "./pages/ShareHandler";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { inject } from '@vercel/analytics';
 
@@ -79,6 +80,7 @@ const AppRoutes = () => {
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/share" element={<ShareHandler />} />
         <Route path="/sucesso" element={<Navigate to="/settings?checkout=success" replace />} />
         <Route path="/planos" element={<Navigate to="/settings?checkout=cancel" replace />} />
         <Route path="*" element={<NotFound />} />
