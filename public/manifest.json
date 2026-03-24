@@ -5,6 +5,7 @@
   "description": "Receitas personalizadas com inteligência artificial",
   "iarc_rating_id": "4184",
   "start_url": "/",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "display": "standalone",
   "orientation": "portrait",
   "window_controls_overlay": {
