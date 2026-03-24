@@ -18,8 +18,9 @@ export default defineConfig(({ mode }) => ({
     validateManifestIcons(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icons/*.jpg", "screenshots/*.jpg", "*.svg", "robots.txt"],
+      includeAssets: ["icons/*.jpg", "screenshots/*.jpg", "*.svg", "robots.txt", "offline.html"],
       manifest: false,
+      strategies: "generateSW",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
         runtimeCaching: [
