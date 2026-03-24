@@ -26,6 +26,10 @@
     "lifestyle"
   ],
   "prefer_related_applications": false,
+  "periodic_background_sync": {
+    "min_interval": 86400,
+    "events": ["sync-recipes"]
+  },
   "note_taking": {
     "new_note_url": "/edit?new=true",
     "edit_note_url": "/edit?id="
