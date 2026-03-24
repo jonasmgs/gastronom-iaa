@@ -208,6 +208,11 @@ export default {
     mediumSize: 'Médio',
     largeSize: 'Grande',
     fontFamily: 'Fonte',
+    notifications: 'Notificações Push',
+    notificationsEnabled: 'Notificações ativadas!',
+    notificationsDisabled: 'Notificações desativadas',
+    notificationsError: 'Erro ao gerenciar notificações',
+    notificationsBlocked: 'Notificações bloqueadas. Ative nas configurações do navegador.',
   },
   book: {
     title: 'Meu Livro de Receitas',

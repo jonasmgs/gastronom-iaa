@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Globe, Sun, Moon, Monitor, Type, ALargeSmall, Crown, Loader2, CreditCard, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Globe, Sun, Moon, Monitor, Type, ALargeSmall, Crown, Loader2, CreditCard, RefreshCw, Bell, BellOff } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supportedLanguages } from '@/i18n';
 import { getTheme, setTheme, getFontSize, setFontSize, getFontFamily, setFontFamily, type ThemeMode, type FontSize, type FontFamily } from '@/lib/theme';
@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
 import {
   getAndroidBillingUnavailableMessage,
@@ -37,10 +38,13 @@ const Settings = () => {
   const [currentSize, setCurrentSize] = useState<FontSize>(getFontSize());
   const [currentFont, setCurrentFont] = useState<FontFamily>(getFontFamily());
   const { subscribed, subscriptionEnd, loading: subLoading, openCheckout, openPortal, checkSubscription } = useSubscription();
+  const { permission, pushSupported, subscription, requestPermission, subscribeToPush, unsubscribeFromPush } = usePushNotifications();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
   const androidNative = isNativeAndroid();
   const androidBillingConfigured = isGooglePlayBillingConfigured();
+  const pushEnabled = permission === 'granted' && subscription !== null;
 
   useEffect(() => {
     const checkout = searchParams.get('checkout');
@@ -109,6 +113,25 @@ const Settings = () => {
   const handleFont = (font: FontFamily) => {
     setFontFamily(font);
     setCurrentFont(font);
+  };
+
+  const handlePushToggle = async () => {
+    if (!session?.user) return;
+    
+    setNotifLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush(session.user.id);
+        toast.success(t('settings.notificationsDisabled') || 'Notificações desativadas');
+      } else {
+        await subscribeToPush(session.user.id);
+        toast.success(t('settings.notificationsEnabled') || 'Notificações ativadas');
+      }
+    } catch (error) {
+      toast.error(t('settings.notificationsError') || 'Erro ao gerenciar notificações');
+    } finally {
+      setNotifLoading(false);
+    }
   };
 
   const themeOptions: { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
@@ -274,6 +297,32 @@ const Settings = () => {
             </AlertDialog>
           </div>
         </section>
+
+        {pushSupported && (
+          <section aria-label={t('settings.notifications') || 'Notificações'}>
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              {pushEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              {t('settings.notifications') || 'Notificações'}
+            </div>
+            <button
+              onClick={handlePushToggle}
+              disabled={notifLoading}
+              className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm transition-colors ${
+                pushEnabled
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-card text-card-foreground hover:bg-accent'
+              }`}
+            >
+              <span>{pushEnabled ? 'Ativas' : 'Inativas'}</span>
+              {notifLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : pushEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+            </button>
+            {permission === 'denied' && (
+              <p className="mt-2 text-xs text-destructive">
+                {t('settings.notificationsBlocked') || 'Notificações bloqueadas. Enable nas configurações do navegador.'}
+              </p>
+            )}
+          </section>
+        )}
 
         <section aria-label={t('settings.language')}>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">

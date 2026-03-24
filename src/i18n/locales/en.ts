@@ -207,6 +207,11 @@ export default {
     mediumSize: 'Medium',
     largeSize: 'Large',
     fontFamily: 'Font',
+    notifications: 'Push Notifications',
+    notificationsEnabled: 'Notifications enabled!',
+    notificationsDisabled: 'Notifications disabled',
+    notificationsError: 'Error managing notifications',
+    notificationsBlocked: 'Notifications blocked. Enable in browser settings.',
   },
   book: {
     title: 'My Recipe Book',
