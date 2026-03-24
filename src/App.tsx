@@ -48,15 +48,46 @@ const AppRoutes = () => {
   useEffect(() => { initTheme(); }, []);
 
   useEffect(() => {
+    // Register Periodic Background Sync
+    const registerPeriodicSync = async () => {
+      if ('serviceWorker' in navigator && 'PeriodicSyncManager' in window) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          
+          // Check if periodic sync is supported and registered
+          const tags = await (registration as any).periodicSync.getTags();
+          
+          if (!tags.includes('sync-recipes')) {
+            await (registration as any).periodicSync.register('sync-recipes', {
+              minInterval: 86400, // 24 hours
+            });
+            console.log('[App] Periodic Sync registered');
+          }
+        } catch (error) {
+          console.log('[App] Periodic Sync not available:', error);
+        }
+      }
+    };
+
+    registerPeriodicSync();
+
+    // Listen for messages from service worker
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'BACKGROUND_SYNC_COMPLETE') {
+        console.log('[App] Background sync completed at', new Date(event.data.timestamp));
+      }
+      if (event.data?.type === 'PERIODIC_SYNC') {
+        console.log('[App] Periodic sync triggered at', new Date(event.data.timestamp));
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleSWMessage);
+
     // Configurar o listener para URLs de redirecionamento (Deep Links) do Capacitor
     const handleDeepLink = async () => {
       CapApp.addListener('appUrlOpen', (event: any) => {
-        // Exemplo de URL: com.gastronom.ia://auth/callback#access_token=...
         const url = new URL(event.url);
         const path = url.pathname + url.search + url.hash;
-        
-        // Se a URL contém o callback de auth, o Supabase vai processar automaticamente
-        // via localStorage/session se o cliente estiver configurado corretamente.
         console.log('App opened with URL:', event.url);
       });
     };
