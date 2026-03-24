@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
+import { generateId } from '@/lib/utils';
 
 interface ShoppingItem {
   id: string;
@@ -50,30 +51,49 @@ const ShoppingList = () => {
   }, []);
 
   const saveList = (newList: ShoppingItem[]) => {
-    setItems(newList);
-    localStorage.setItem('shopping_list', JSON.stringify(newList));
+    try {
+      setItems(newList);
+      localStorage.setItem('shopping_list', JSON.stringify(newList));
+    } catch (error) {
+      console.error('Error saving shopping list:', error);
+      toast.error(t('common.storageError', 'Erro ao salvar dados localmente. O armazenamento pode estar cheio.'));
+    }
   };
 
   const addItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItemName.trim()) return;
     
-    hapticsImpactMedium();
-    const newItem: ShoppingItem = {
-      id: crypto.randomUUID(),
-      name: newItemName.trim(),
-      quantity: newItemQty.trim() || '1',
-      price: parseFloat(newItemPrice) || 0,
-      checked: false,
-      createdAt: new Date().toISOString()
-    };
+    if (!newItemName.trim()) {
+      toast.error(t('shopping.itemRequired', 'O nome do item é obrigatório'));
+      return;
+    }
     
-    saveList([newItem, ...items]);
-    setNewItemName('');
-    setNewItemQty('');
-    setNewItemPrice('');
-    hapticsSuccess();
-    toast.success(t('shopping.itemAdded'));
+    try {
+      hapticsImpactMedium();
+      
+      // Converte preço tratando vírgula como ponto
+      const priceValue = newItemPrice.replace(',', '.');
+      const parsedPrice = parseFloat(priceValue) || 0;
+
+      const newItem: ShoppingItem = {
+        id: generateId(),
+        name: newItemName.trim(),
+        quantity: newItemQty.trim() || '1',
+        price: parsedPrice,
+        checked: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      saveList([newItem, ...items]);
+      setNewItemName('');
+      setNewItemQty('');
+      setNewItemPrice('');
+      hapticsSuccess();
+      toast.success(t('shopping.itemAdded'));
+    } catch (error) {
+      console.error('Error adding item:', error);
+      toast.error(t('common.error'));
+    }
   };
 
   const updateItemPrice = (id: string, price: number) => {
@@ -162,9 +182,10 @@ const ShoppingList = () => {
               className="w-20 bg-muted/50 border-none rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
             />
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={newItemPrice}
-              onChange={(e) => setNewItemPrice(e.target.value)}
+              onChange={(e) => setNewItemPrice(e.target.value.replace(/[^\d.,]/g, ''))}
               placeholder={t('shopping.itemPricePlaceholder')}
               className="w-24 bg-muted/50 border-none rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
             />
