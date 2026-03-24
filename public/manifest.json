@@ -3,6 +3,7 @@
   "name": "Gastronom.IA",
   "short_name": "GastronomIA",
   "description": "Receitas personalizadas com inteligência artificial",
+  "iarc_rating_id": "4184",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
