@@ -6,6 +6,9 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "lang": "pt-BR",
