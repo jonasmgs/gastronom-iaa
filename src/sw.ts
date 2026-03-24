@@ -18,6 +18,12 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('sync', (event: any) => {
+  if (event.tag === 'sync-recipes') {
+    event.waitUntil(syncRecipes());
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   

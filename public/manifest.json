@@ -26,6 +26,9 @@
     "lifestyle"
   ],
   "prefer_related_applications": false,
+  "background_sync": {
+    "sync_type": "online"
+  },
   "periodic_background_sync": {
     "min_interval": 86400,
     "events": ["sync-recipes"]
