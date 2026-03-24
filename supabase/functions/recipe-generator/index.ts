@@ -7,6 +7,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60_000;
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(identifier: string): boolean {
+  const now = Date.now();
+  const record = requestCounts.get(identifier);
+  
+  if (!record || now > record.resetTime) {
+    requestCounts.set(identifier, { count: 1, resetTime: now + RATE_WINDOW_MS });
+    return true;
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
+function sanitizeInput(input: string): string {
+  return input
+    .slice(0, 200)
+    .replace(/[<>]/g, "")
+    .replace(/javascript:/gi, "")
+    .replace(/on\w+=/gi, "")
+    .trim();
+}
+
 type Ingredient = {
   name: string;
   quantity: string;
@@ -264,6 +294,14 @@ serve(async (req) => {
   }
 
   try {
+    const userId = req.headers.get("x-user-id") || req.headers.get("authorization") || "anonymous";
+    if (!checkRateLimit(userId)) {
+      return new Response(JSON.stringify({ error: "Too many requests. Try again later." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const bearer = getBearerToken(req);
     if (!bearer) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
@@ -285,6 +323,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const ingredients = sanitizeItems(body.ingredients);
     const mode = body.mode === "transform" ? "transform" : "generate";
+    const description = body.description ? sanitizeInput(body.description as string) : null;
 
     if (mode !== "transform" && ingredients.length < 2) {
       return new Response(JSON.stringify({ error: "Envie pelo menos 2 ingredientes" }), {

@@ -10,6 +10,34 @@ type LogStep = (step: string, details?: Record<string, unknown>) => void;
 // O DEFAULT_ORIGIN é usado como fallback caso o checkout seja iniciado sem o header origin.
 const DEFAULT_ORIGIN = "https://app.gastronomia.com.br";
 
+const ALLOWED_ORIGINS = Deno.env.get("ALLOWED_ORIGINS") || "https://gastronom-iaa.vercel.app,https://gastronom-iaa.app,http://localhost:8080";
+
+function getAllowedOrigins(): string[] {
+  return ALLOWED_ORIGINS.split(",").map(o => o.trim());
+}
+
+function isOriginAllowed(origin: string): boolean {
+  const allowed = getAllowedOrigins();
+  return allowed.some(allowed => {
+    if (allowed.endsWith(".*")) {
+      const prefix = allowed.slice(0, -2);
+      return origin.startsWith(prefix);
+    }
+    return origin === allowed || origin.startsWith(allowed + "/");
+  });
+}
+
+export function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") || "";
+  const allowed = isOriginAllowed(origin) ? origin : getAllowedOrigins()[0] || "*";
+  
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

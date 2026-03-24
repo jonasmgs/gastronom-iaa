@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Toaster } from "@/components/ui/toaster";
 import EmbeddedCheckoutModal from '@/components/EmbeddedCheckoutModal';
@@ -10,20 +10,27 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from '@/hooks/useAuth';
 import { initTheme } from '@/lib/theme';
 import SubscriptionPopup from '@/components/SubscriptionPopup';
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import AuthCallback from "./pages/AuthCallback";
-import MyRecipes from "./pages/MyRecipes";
-import ShoppingList from "./pages/ShoppingList";
-import RecipeResult from "./pages/RecipeResult";
-import EditRecipe from "./pages/EditRecipe";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import ShareHandler from "./pages/ShareHandler";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { inject } from '@vercel/analytics';
+
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const MyRecipes = lazy(() => import("./pages/MyRecipes"));
+const ShoppingList = lazy(() => import("./pages/ShoppingList"));
+const RecipeResult = lazy(() => import("./pages/RecipeResult"));
+const EditRecipe = lazy(() => import("./pages/EditRecipe"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const ShareHandler = lazy(() => import("./pages/ShareHandler"));
+
+const PageLoader = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
 
 inject();
 
@@ -100,22 +107,24 @@ const AppRoutes = () => {
 
   return (
     <ErrorBoundary>
-      <Routes>
-        <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-        <Route path="/recipes" element={<ProtectedRoute><MyRecipes /></ProtectedRoute>} />
-        <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
-        <Route path="/recipe/edit/:id" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
-        <Route path="/shopping-list" element={<ProtectedRoute><ShoppingList /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/share" element={<ShareHandler />} />
-        <Route path="/sucesso" element={<Navigate to="/settings?checkout=success" replace />} />
-        <Route path="/planos" element={<Navigate to="/settings?checkout=cancel" replace />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/recipes" element={<ProtectedRoute><MyRecipes /></ProtectedRoute>} />
+          <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
+          <Route path="/recipe/edit/:id" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
+          <Route path="/shopping-list" element={<ProtectedRoute><ShoppingList /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/share" element={<ShareHandler />} />
+          <Route path="/sucesso" element={<Navigate to="/settings?checkout=success" replace />} />
+          <Route path="/planos" element={<Navigate to="/settings?checkout=cancel" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </ErrorBoundary>
   );
 };

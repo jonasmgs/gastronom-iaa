@@ -34,15 +34,25 @@ function generateSessionToken(): string {
 
 function getStoredSessionToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(STORAGE_KEY);
+  return window.sessionStorage.getItem(STORAGE_KEY);
+}
+
+function saveSessionToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.setItem(STORAGE_KEY, token);
+}
+
+function clearStoredSessionToken(): void {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(STORAGE_KEY);
 }
 
 function clearSupabaseAuthStorage() {
   if (typeof window === 'undefined') return;
 
   const keysToRemove: string[] = [];
-  for (let index = 0; index < window.localStorage.length; index += 1) {
-    const key = window.localStorage.key(index);
+  for (let index = 0; index < window.sessionStorage.length; index += 1) {
+    const key = window.sessionStorage.key(index);
     if (!key) continue;
 
     if (key === STORAGE_KEY || /^sb-.*-auth-token$/.test(key)) {
@@ -50,7 +60,7 @@ function clearSupabaseAuthStorage() {
     }
   }
 
-  keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+  keysToRemove.forEach((key) => window.sessionStorage.removeItem(key));
 }
 
 function notifyListeners() {
@@ -79,9 +89,9 @@ function setAuthState(next: Partial<AuthState>) {
 function setStoredSessionToken(token: string | null) {
   if (typeof window !== 'undefined') {
     if (token) {
-      window.localStorage.setItem(STORAGE_KEY, token);
+      saveSessionToken(token);
     } else {
-      window.localStorage.removeItem(STORAGE_KEY);
+      clearStoredSessionToken();
     }
   }
 
