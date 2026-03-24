@@ -7,7 +7,7 @@
   "dir": "ltr",
   "lang": "pt-BR",
   "start_url": "/",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": ["tabbed", "window-controls-overlay", "standalone", "minimal-ui"],
   "display": "standalone",
   "orientation": "portrait",
   "window_controls_overlay": {
