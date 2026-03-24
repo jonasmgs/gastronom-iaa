@@ -27,6 +27,15 @@
     { "origin": "https://gastronom-iaa.vercel.app" },
     { "origin": "https://*.supabase.co" }
   ],
+  "windows_tile": {
+    "square150x150Logo": "/icons/icon-150.png",
+    "square310x310Logo": "/icons/icon-310.png",
+    "wide310x150Logo": "/icons/icon-wide.png",
+    "square70x70Logo": "/icons/icon-70.png",
+    "background_color": "#16a34a",
+    "lang": "pt-BR",
+    "orientation": "portrait"
+  },
   "categories": [
     "food",
     "health",
