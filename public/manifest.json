@@ -6,6 +6,10 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
+  "window_controls_overlay": {
+    "display_overlay": true,
+    "cookie_label": "gastronom_ia_overlay_state"
+  },
   "launch_handler": {
     "client_mode": "navigate-existing"
   },

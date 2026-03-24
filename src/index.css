@@ -84,6 +84,13 @@
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 145 50% 45%;
   }
+
+  /* Window Controls Overlay CSS variables */
+  @supports (top: env(titlebar-area-height)) {
+    :root {
+      --titlebar-area-height: env(titlebar-area-height);
+    }
+  }
 }
 
 @layer base {
