@@ -26,6 +26,10 @@
     "lifestyle"
   ],
   "prefer_related_applications": false,
+  "note_taking": {
+    "new_note_url": "/edit?new=true",
+    "edit_note_url": "/edit?id="
+  },
   "share_target": {
     "action": "/share",
     "method": "GET",
