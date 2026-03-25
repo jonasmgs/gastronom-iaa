@@ -1,4 +1,5 @@
-storeFile=upload-keystore.jks
-storePassword=CHANGE_ME
-keyAlias=upload
-keyPassword=CHANGE_ME
+# Signing config for release builds (do not commit the real file)
+storeFile=/path/to/keystore.jks
+storePassword=change-me
+keyAlias=gastronom
+keyPassword=change-me
