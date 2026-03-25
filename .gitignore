@@ -51,3 +51,4 @@ android/app/build/
 android/build/
 bin/
 obj/
+**/google-services.json
