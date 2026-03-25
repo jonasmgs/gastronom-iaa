@@ -16,6 +16,7 @@ import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
 import RecipeFilters from '@/components/RecipeFilters';
 import PaywallModal from '@/components/PaywallModal';
+import PageShell from '@/components/PageShell';
 import type { EdgeFunctionError, RecipeGeneratorResponse, Step } from '@/types/recipe';
 import bgIngredients from '@/assets/bg-ingredients.jpg';
 import bgIngredients2 from '@/assets/bg-ingredients-2.jpg';
@@ -177,8 +178,8 @@ const Index = () => {
         <div className="absolute inset-0 h-64 sm:h-80 bg-gradient-to-b from-background/30 via-background/60 to-background" />
       </div>
 
-      <div className="relative z-10">
-        <header className="px-4 sm:px-5 pt-12 sm:pt-14 pb-4 flex items-start justify-between gap-2">
+      <PageShell className="relative z-10 space-y-4">
+        <header className="pt-12 sm:pt-14 pb-4 flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm text-muted-foreground">{t('home.hello')}</p>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{name || t('home.chef')} 👋</h1>
@@ -190,7 +191,7 @@ const Index = () => {
 
         {/* Subscription Banner for non-subscribers */}
         {!subLoading && !subscribed && (
-          <div className="px-5 mb-4">
+          <div className="mb-4">
             <button
               onClick={() => setShowPaywall(true)}
               className="flex w-full items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-left transition-colors hover:bg-primary/10"
@@ -207,7 +208,7 @@ const Index = () => {
         )}
 
         {/* Shared Filters */}
-        <div className="px-4 sm:px-5 mb-4">
+        <div className="mb-4">
           <RecipeFilters
             category={category}
             onCategoryChange={setCategory}
@@ -255,7 +256,7 @@ const Index = () => {
         </div>
 
         {/* Ingredients List (visual cards) */}
-        <section className="px-5 mb-6" aria-label={t('recipe.ingredients')}>
+        <section className="mb-6" aria-label={t('recipe.ingredients')}>
           {ingredients.length > 0 ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-wrap gap-2" role="list">
               {ingredients.map((ing) => (
@@ -273,7 +274,7 @@ const Index = () => {
 
         {/* Generate Button */}
         {ingredients.length >= 2 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="px-5">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <button
               onClick={handleGenerateClick}
               disabled={generating}
@@ -327,7 +328,7 @@ const Index = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </PageShell>
 
       <PaywallModal open={showPaywall} onClose={() => setShowPaywall(false)} />
       <BottomNav />
