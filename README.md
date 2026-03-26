@@ -93,7 +93,8 @@ Para gerar o arquivo AAB para a Google Play, siga estas etapas:
     - Use as credenciais do `upload-keystore.jks`.
 5.  **Localização do Arquivo**: O AAB gerado estará em `android/app/build/outputs/bundle/release/app-release.aab`.
 
-Checklist Play Store: veja `docs/playstore-steps.md` para os passos de assinatura, versão e envio.
+Checklist Play Store: veja `docs/playstore-steps.md` para os passos de assinatura, versão e envio.  
+Checklist App Store: veja `docs/appstore-steps.md` para os passos de versão, push e archive.
 
 ## Testes
 

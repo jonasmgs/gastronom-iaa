@@ -17,7 +17,8 @@
     "install:playwright": "playwright install --with-deps chromium",
     "assets:generate": "capacitor-assets generate",
     "android:bundle": "cd android && ./gradlew bundleRelease",
-    "android:apk": "cd android && ./gradlew assembleRelease"
+    "android:apk": "cd android && ./gradlew assembleRelease",
+    "ios:sync": "npx cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
