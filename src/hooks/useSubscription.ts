@@ -203,21 +203,14 @@ export function useSubscription() {
         return;
       }
 
-      if (isNativeAndroid()) {
-        const productId = getGooglePlaySubscriptionProductId();
-
-        if (!productId || !isGooglePlayBillingConfigured()) {
-          setState({
-            subscribed: false,
-            productId: null,
-            subscriptionEnd: null,
-            loading: false,
-          });
-          return;
-        }
-
-        const googlePlayState = await GooglePlayBilling.getSubscriptionStatus({ productId });
-        setState(buildGooglePlayState(googlePlayState));
+      if (Capacitor.isNativePlatform()) {
+        // Política: Stripe só no web. Em nativo não habilitar assinatura.
+        setState({
+          subscribed: false,
+          productId: null,
+          subscriptionEnd: null,
+          loading: false,
+        });
         return;
       }
 
@@ -265,28 +258,8 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const openCheckout = async () => {
-    if (isNativeAndroid()) {
-      const productId = getGooglePlaySubscriptionProductId();
-
-      if (!productId || !isGooglePlayBillingConfigured()) {
-        throw new Error(getAndroidBillingUnavailableMessage());
-      }
-
-      const availability = await GooglePlayBilling.isAvailable();
-      if (!availability.available) {
-        throw new Error(getAndroidBillingUnavailableMessage());
-      }
-
-      const purchaseResult = await GooglePlayBilling.purchaseSubscription({ productId });
-
-      if (!purchaseResult.started && purchaseResult.alreadyOwned) {
-        await checkSubscription();
-        return;
-      }
-
-      await waitForGooglePlayPurchase(productId);
-      await checkSubscription();
-      return;
+    if (Capacitor.isNativePlatform()) {
+      throw new Error('Assinaturas via Stripe estão disponíveis apenas na versão web.');
     }
 
     const activeSession = await getActiveSession();
@@ -337,15 +310,8 @@ export function useSubscription() {
 
   const openPortal = async () => {
     try {
-      if (isNativeAndroid()) {
-        const productId = getGooglePlaySubscriptionProductId();
-
-        if (!productId || !isGooglePlayBillingConfigured()) {
-          throw new Error(getAndroidBillingUnavailableMessage());
-        }
-
-        await GooglePlayBilling.openManageSubscriptions({ productId });
-        return;
+      if (Capacitor.isNativePlatform()) {
+        throw new Error('Portal de assinatura disponível apenas na versão web.');
       }
 
       const activeSession = await getActiveSession();
