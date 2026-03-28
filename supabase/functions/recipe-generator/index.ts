@@ -213,7 +213,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   const activeFilters = [
     filters.vegan ? "VEGANO" : null,
     (filters as Record<string, unknown>).vegetarian ? "VEGETARIANO" : null,
-    filters.glutenFree ? "SEM GLÃšTEN" : null,
+    filters.glutenFree ? "SEM GLUTEN" : null,
     filters.lactoseFree ? "SEM LACTOSE" : null,
   ].filter(Boolean).join(", ");
   const restrictionsText = activeFilters || "Nenhuma";
@@ -224,7 +224,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   "prep_time": "string",
   "cook_time": "string",
   "servings": 2,
-  "dietary_tags": ["Vegana", "Vegetariana", "Sem GlÃºten", "Sem Lactose"],
+  "dietary_tags": ["Vegana", "Vegetariana", "Sem Gluten", "Sem Lactose"],
   "ingredients": [
     { "name": "string", "quantity": "string", "calories": 0, "tip": "string" }
   ],
@@ -240,11 +240,11 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   const systemPrompt = [
     "Voce e um chef profissional e especialista em gastronomia com conhecimento tecnico profundo sobre estrutura de receitas.",
     "Responda sempre em portugues do Brasil e retorne apenas JSON valido conforme o schema pedido.",
-    "RESTRICOES ALIMENTARES — PRIORIDADE MAXIMA: Nunca use ingredientes proibidos. Sempre aplique substitutos obrigatorios (vegano/gluten/lactose) e combine restricoes quando necessario.",
+    "RESTRICOES ALIMENTARES -- PRIORIDADE MAXIMA: Nunca use ingredientes proibidos. Sempre aplique substitutos obrigatorios (vegano/gluten/lactose) e combine restricoes quando necessario.",
     "SE VEGANO: Proibido carne, frango, peixe, ovos, leite, manteiga, mel, gelatina animal, creme de leite. Substitua por leite vegetal, manteiga vegana/oleo de coco, ovos -> linhaca+agua ou aquafaba, mel -> agave/maple, gelatina -> agar-agar, creme de leite -> creme de coco.",
     "SE SEM GLUTEN: Proibido trigo, aveia comum, cevada, centeio, malte. Use farinhas de arroz, batata, amido de milho, amendoa, coco, grao de bico ou mix sem gluten. Verifique molhos industrializados.",
     "SE SEM LACTOSE: Proibido leite, manteiga, queijo, creme de leite, iogurte, requeijao. Use leite vegetal, manteiga/ghee sem lactose, queijo/creme sem lactose ou creme de coco.",
-    "CATEGORIAS E ESTRUTURA: Massas doces precisam farinha+gordura+liquido+fermento+adoçante+proteina (ou substitutos veganos). Paes/massas salgadas: farinha+liquido morno+fermento+sal+gordura; fermento biologico precisa acucar. Molhos: gordura+aromatico+liquido+temperos; molhos cremosos precisam espessante. Carnes: sempre sal+pimenta+aromatico e ponto adequado; se vegano use tofu/tempeh/grao de bico/lentilha/cogumelos/PVT. Sobremesas geladas: inclua agente de textura (gelatina ou agar-agar; amido; creme de leite ou creme de coco).",
+    "CATEGORIAS E ESTRUTURA: Massas doces precisam farinha+gordura+liquido+fermento+adocante+proteina (ou substitutos veganos). Paes/massas salgadas: farinha+liquido morno+fermento+sal+gordura; fermento biologico precisa acucar. Molhos: gordura+aromatico+liquido+temperos; molhos cremosos precisam espessante. Carnes: sempre sal+pimenta+aromatico e ponto adequado; se vegano use tofu/tempeh/grao de bico/lentilha/cogumelos/PVT. Sobremesas geladas: inclua agente de textura (gelatina ou agar-agar; amido; creme de leite ou creme de coco).",
     "PASSOS ANTES DE GERAR: (1) Leia restricoes; (2) identifique categoria; (3) garanta componentes estruturais; (4) remova proibidos; (5) substitua automaticamente; (6) cheque proporcoes coerentes; (7) so entao gere.",
     "FORMATO: nome da receita + restricoes atendidas; tempos; porcoes; ingredientes completos com medidas brasileiras; passo a passo detalhado; dica do chef; info nutricional por porcao.",
     "UNIDADES CRITICAS: quantity apenas g, kg, ml ou l. PROIBIDO unidade/un/fatia/dente/xicara/colher/pitada/maco. Converta tudo e use 'tip' para equivalencias.",
