@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Leaf, WheatOff, MilkOff, Loader2, Wand2, ClipboardPaste, AlertCircle } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { useDietaryRestrictions } from '@/hooks/useDietaryRestrictions';
 import BottomNav from '@/components/BottomNav';
 import type { RecipeGeneratorResponse, Step } from '@/types/recipe';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
@@ -29,6 +30,17 @@ const EditRecipe = () => {
   const [transforming, setTransforming] = useState(false);
   const [touched, setTouched] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const { filters: savedFilters, loading: filtersLoading } = useDietaryRestrictions();
+
+  useEffect(() => {
+    if (!filtersLoading) {
+      setFilters({
+        vegan: savedFilters.vegan ?? false,
+        glutenFree: savedFilters.glutenFree ?? false,
+        lactoseFree: savedFilters.lactoseFree ?? false,
+      });
+    }
+  }, [filtersLoading, savedFilters]);
 
   useUnsavedChanges(touched && recipeText.trim().length > 0);
 

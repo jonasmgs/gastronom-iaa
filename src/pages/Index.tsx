@@ -23,6 +23,8 @@ import bgIngredients2 from '@/assets/bg-ingredients-2.jpg';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
 import bgIngredients4 from '@/assets/bg-ingredients-4.jpg';
 import bgUtensils from '@/assets/bg-utensils.jpg';
+import { useDietaryRestrictions } from '@/hooks/useDietaryRestrictions';
+import { searchRecipeFromAPIs, type DietaryFilters } from '@/utils/recipeSearch';
 
 const bgImages = [bgIngredients, bgIngredients2, bgIngredients3, bgIngredients4, bgUtensils];
 
@@ -43,6 +45,7 @@ const Index = () => {
   const [showServingsModal, setShowServingsModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [recentIngredients, setRecentIngredients] = useState<string[]>([]);
+  const { filters: dietaryFilters, loading: dietaryLoading, saveFilters } = useDietaryRestrictions();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -87,6 +90,10 @@ const Index = () => {
 
   const generateRecipe = async () => {
     if (!user) return;
+    if (dietaryLoading) {
+      toast.info(t('common.loading') || 'Carregando preferências...', { description: 'Aguarde um instante e tente novamente.' });
+      return;
+    }
     
     // Salvar nos recentes
     const updatedRecent = Array.from(new Set([...ingredients, ...recentIngredients])).slice(0, 15);
@@ -102,9 +109,49 @@ const Index = () => {
     try {
       console.log('[DEBUG] Iniciando geracao de receita...');
       console.log('[DEBUG] Ingredientes:', ingredients);
-      
+
+      const recipeName = (description && description.trim()) || ingredients[0] || 'Receita personalizada';
+      const userFilters: DietaryFilters = {
+        vegan: Boolean(dietaryFilters.vegan),
+        vegetarian: Boolean(dietaryFilters.vegetarian),
+        glutenFree: Boolean(dietaryFilters.glutenFree),
+        lactoseFree: Boolean(dietaryFilters.lactoseFree),
+      };
+
+      const existing = await searchRecipeFromAPIs(recipeName, userFilters);
+      const restrictionsText = [
+        userFilters.vegan ? 'VEGANO' : '',
+        userFilters.vegetarian ? 'VEGETARIANO' : '',
+        userFilters.glutenFree ? 'SEM GLÚTEN' : '',
+        userFilters.lactoseFree ? 'SEM LACTOSE' : '',
+      ].filter(Boolean).join(', ');
+
+      let promptContext = `
+Restrições alimentares do usuário: ${restrictionsText || 'Nenhuma'}
+Gere sempre seguindo as regras de restrição alimentar (vegano/glúten/lactose) com prioridade máxima.
+`;
+      if (existing.found) {
+        promptContext = `
+Restrições alimentares do usuário: ${restrictionsText || 'Nenhuma'}
+Use esta receita como base e adapte respeitando TODAS as restrições acima.
+Traduza para o idioma do usuário, ajuste as medidas para o sistema brasileiro,
+substitua qualquer ingrediente incompatível com as restrições e adicione dicas do chef.
+Receita base: ${JSON.stringify(existing)}
+`;
+      }
+
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
-        body: { ingredients, category, complexity, servings, description: description.trim() || null },
+        body: {
+          ingredients,
+          category,
+          complexity,
+          servings,
+          description: description.trim() || null,
+          filters: userFilters,
+          recipe_name: recipeName,
+          prompt_context: promptContext,
+          restrictions_text: restrictionsText,
+        },
         token: session?.access_token,
       });
       
@@ -209,17 +256,19 @@ const Index = () => {
 
         {/* Shared Filters */}
         <div className="mb-4">
-          <RecipeFilters
-            category={category}
-            onCategoryChange={setCategory}
-            complexity={complexity}
-            onComplexityChange={setComplexity}
-            ingredients={ingredients}
-            onIngredientsChange={setIngredients}
-            description={description}
-            onDescriptionChange={setDescription}
-            showDescription
-          />
+      <RecipeFilters
+        category={category}
+        onCategoryChange={setCategory}
+        complexity={complexity}
+        onComplexityChange={setComplexity}
+        ingredients={ingredients}
+        onIngredientsChange={setIngredients}
+        description={description}
+        onDescriptionChange={setDescription}
+        showDescription
+        dietaryFilters={dietaryFilters}
+        onDietaryChange={(next) => saveFilters(next)}
+      />
 
           {recentIngredients.length > 0 && (
             <div className="space-y-2 mt-4">

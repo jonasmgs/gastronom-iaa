@@ -16,6 +16,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
 import type { Ingredient, RecipeGeneratorResponse, Step } from '@/types/recipe';
 import { hapticsImpactLight, hapticsSuccess, hapticsError } from '@/lib/haptics';
+import { useDietaryRestrictions } from '@/hooks/useDietaryRestrictions';
 
 function safeParseJSONArray<T>(data: unknown, fallback: T[] = []): T[] {
   if (Array.isArray(data)) return data as T[];
@@ -78,6 +79,7 @@ const RecipeResult = () => {
   const [editedName, setEditedName] = useState('');
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [shoppingList, setShoppingList] = useState<Array<{id: string; name: string; quantity: string; price: number; recipeName: string; checked: boolean; createdAt: string}>>([]);
+  const { filters: savedFilters, loading: filtersLoading } = useDietaryRestrictions();
 
   const addToShoppingList = () => {
     if (!recipe) return;
@@ -129,6 +131,16 @@ const RecipeResult = () => {
   useEffect(() => {
     fetchRecipe();
   }, [fetchRecipe]);
+
+  useEffect(() => {
+    if (!filtersLoading) {
+      setFilters({
+        vegan: savedFilters.vegan ?? false,
+        glutenFree: savedFilters.glutenFree ?? false,
+        lactoseFree: savedFilters.lactoseFree ?? false,
+      });
+    }
+  }, [filtersLoading, savedFilters]);
 
   const handleShare = async () => {
     if (!recipe) return;

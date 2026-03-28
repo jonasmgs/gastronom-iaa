@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Salad, Cake, Beef, Sandwich, Soup, Droplets, Zap, ChefHat, Crown, Leaf } from 'lucide-react';
+import { Plus, X, Salad, Cake, Beef, Sandwich, Soup, Droplets, Zap, ChefHat, Crown, Leaf, WheatOff, MilkOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +14,13 @@ interface RecipeFiltersProps {
   description?: string;
   onDescriptionChange?: (val: string) => void;
   showDescription?: boolean;
+  dietaryFilters?: {
+    vegan?: boolean;
+    glutenFree?: boolean;
+    lactoseFree?: boolean;
+    vegetarian?: boolean;
+  };
+  onDietaryChange?: (filters: NonNullable<RecipeFiltersProps['dietaryFilters']>) => void;
 }
 
 const RecipeFilters = ({
@@ -22,6 +29,8 @@ const RecipeFilters = ({
   ingredients, onIngredientsChange,
   description = '', onDescriptionChange,
   showDescription = false,
+  dietaryFilters,
+  onDietaryChange,
 }: RecipeFiltersProps) => {
   const { t } = useTranslation();
   const [ingredientInput, setIngredientInput] = useState('');
@@ -111,6 +120,51 @@ const RecipeFilters = ({
           ))}
         </div>
       </section>
+
+      {/* Dietary filters (persist profile) */}
+      {dietaryFilters && onDietaryChange && (
+        <section aria-label={t('edit.dietaryFilters')}>
+          <p className="text-xs font-medium text-muted-foreground mb-2">{t('edit.dietaryFilters')}</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t('edit.dietaryFilters')}>
+            <button
+              onClick={() => onDietaryChange({ ...dietaryFilters, vegan: !dietaryFilters.vegan, vegetarian: !dietaryFilters.vegan ? true : dietaryFilters.vegetarian })}
+              aria-pressed={dietaryFilters.vegan}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all ${
+                dietaryFilters.vegan ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <Leaf className="h-3.5 w-3.5" /> {t('recipe.vegan')}
+            </button>
+            <button
+              onClick={() => onDietaryChange({ ...dietaryFilters, vegetarian: !dietaryFilters.vegetarian })}
+              aria-pressed={dietaryFilters.vegetarian}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all ${
+                dietaryFilters.vegetarian ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <Leaf className="h-3.5 w-3.5" /> {t('recipe.vegan', 'Vegana').replace('Vegana', 'Vegetariana')}
+            </button>
+            <button
+              onClick={() => onDietaryChange({ ...dietaryFilters, glutenFree: !dietaryFilters.glutenFree })}
+              aria-pressed={dietaryFilters.glutenFree}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all ${
+                dietaryFilters.glutenFree ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <WheatOff className="h-3.5 w-3.5" /> {t('recipe.glutenFree')}
+            </button>
+            <button
+              onClick={() => onDietaryChange({ ...dietaryFilters, lactoseFree: !dietaryFilters.lactoseFree })}
+              aria-pressed={dietaryFilters.lactoseFree}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all ${
+                dietaryFilters.lactoseFree ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <MilkOff className="h-3.5 w-3.5" /> {t('recipe.lactoseFree')}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Ingredients */}
       <div>
