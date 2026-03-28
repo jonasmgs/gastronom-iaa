@@ -196,6 +196,18 @@ export default {
     it: 'Italiano',
     fr: 'Français',
   },
+  subscription: {
+    description: 'Receitas ilimitadas, livro de receitas PDF, chat chef IA (100/mes)',
+    subscribe: 'Assinar agora',
+    success: 'Assinatura ativada com sucesso!',
+    cancelled: 'Assinatura cancelada.',
+    activeUntil: 'Ativo ate',
+    manage: 'Gerenciar',
+    benefit1: 'Receitas ilimitadas',
+    benefit2: 'Livro de receitas em PDF',
+    benefit3: 'Chat com chef IA (100/mes)',
+    maybeLater: 'Talvez depois',
+  },
   settings: {
     title: 'Configurações',
     language: 'Idioma',

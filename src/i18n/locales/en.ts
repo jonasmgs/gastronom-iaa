@@ -195,6 +195,18 @@ export default {
     it: 'Italiano',
     fr: 'Français',
   },
+  subscription: {
+    description: 'Unlimited recipes, PDF recipe book, AI chef chat (100/month)',
+    subscribe: 'Subscribe now',
+    success: 'Subscription activated successfully!',
+    cancelled: 'Subscription cancelled.',
+    activeUntil: 'Active until',
+    manage: 'Manage',
+    benefit1: 'Unlimited recipes',
+    benefit2: 'PDF recipe book',
+    benefit3: 'AI chef chat (100/month)',
+    maybeLater: 'Maybe later',
+  },
   settings: {
     title: 'Settings',
     language: 'Language',
