@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Leaf, FolderPlus, X, Check } from 'lucide-react';
+import { Plus, Trash2, Leaf, FolderPlus, X, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
