@@ -321,20 +321,18 @@ Receita base: ${JSON.stringify(existing)}
           )}
         </section>
 
-        {/* Generate Button */}
-        {ingredients.length >= 2 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <button
-              onClick={handleGenerateClick}
-              disabled={generating}
-              aria-busy={generating}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-              {generating ? t('home.generating') : t('home.generate')}
-            </button>
-          </motion.div>
-        )}
+        {/* Generate Button (always visible; validation handled in handler) */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <button
+            onClick={handleGenerateClick}
+            disabled={generating}
+            aria-busy={generating}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            {generating ? t('home.generating') : t('home.generate')}
+          </button>
+        </motion.div>
 
         {/* Servings Modal */}
         <AnimatePresence>
