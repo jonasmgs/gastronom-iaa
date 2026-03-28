@@ -112,7 +112,6 @@ export type Database = {
           id: string
           name: string | null
           session_token: string | null
-          stripe_customer_id: string | null
           test_access: boolean
         }
         Insert: {
@@ -122,7 +121,6 @@ export type Database = {
           id: string
           name?: string | null
           session_token?: string | null
-          stripe_customer_id?: string | null
           test_access?: boolean
         }
         Update: {
@@ -132,7 +130,6 @@ export type Database = {
           id?: string
           name?: string | null
           session_token?: string | null
-          stripe_customer_id?: string | null
           test_access?: boolean
         }
         Relationships: []

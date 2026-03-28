@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
-import { invokeEdgeFunction } from '@/lib/edge-functions';
 
 describe('Common User Integration Test', () => {
   let session: any = null;
@@ -33,17 +32,7 @@ describe('Common User Integration Test', () => {
     console.log('👤 Common user profile test_access:', profile?.test_access);
     expect(profile?.test_access).toBeFalsy(); // Deve ser falso para usuário comum
 
-    const { data: subData, error: subError } = await invokeEdgeFunction<any>('check-subscription', {
-      token: session.access_token
-    });
 
-    if (subError) {
-        console.warn('⚠️ Subscription check failed:', subError.message);
-    } else {
-        console.log('💳 Subscription status:', subData?.subscribed ? 'Active' : 'Inactive');
-        // Para um usuário comum sem pagamento, deve ser false
-        expect(subData?.subscribed).toBe(false);
-    }
   });
 
   it('3. Recipe generation should be restricted for non-subscribers', async () => {
@@ -60,3 +49,4 @@ describe('Common User Integration Test', () => {
     console.log('ℹ️ Note: Client-side paywall check is in Index.tsx handleGenerateClick');
   });
 });
+

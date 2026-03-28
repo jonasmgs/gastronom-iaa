@@ -17,27 +17,14 @@ describe('App Integration Test', () => {
     console.log('✅ Login successful');
   });
 
-  it('2. Should check subscription status', async () => {
+  it('2. Should check subscription status (Play only)', async () => {
     expect(session).toBeDefined();
-    
-    // Verificar se o usuário tem test_access ou assinatura ativa
     const { data: profile } = await supabase
       .from('profiles')
       .select('test_access')
       .eq('id', session.user.id)
       .single();
-    
     console.log('👤 User profile test_access:', profile?.test_access);
-
-    const { data: subData, error: subError } = await invokeEdgeFunction<any>('check-subscription', {
-      token: session.access_token
-    });
-
-    if (subError) {
-        console.warn('⚠️ Subscription check failed (might be expected if Stripe is not configured):', subError.message);
-    } else {
-        console.log('💳 Subscription status:', subData?.subscribed ? 'Active' : 'Inactive');
-    }
   });
 
   it('3. Should generate a recipe', async () => {
@@ -93,3 +80,4 @@ describe('App Integration Test', () => {
     console.log('📚 Successfully fetched recipes list (count:', data?.length, ')');
   });
 });
+

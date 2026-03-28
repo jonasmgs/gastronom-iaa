@@ -2,7 +2,6 @@ import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { invokeEdgeFunction } from '@/lib/edge-functions';
 import {
   getAndroidBillingUnavailableMessage,
   getGooglePlaySubscriptionProductId,
@@ -25,41 +24,7 @@ interface SubscriptionState {
   loading: boolean;
 }
 
-function createTimeoutError(message: string) {
-  return new Error(message);
-}
-
-async function invokeWithTimeout<T>(
-  fn: () => Promise<{ data: T | null; error: Error | null }>,
-  timeoutMessage: string,
-) {
-  return Promise.race([
-    fn(),
-    new Promise<never>((_, reject) => {
-      setTimeout(() => reject(createTimeoutError(timeoutMessage)), 20_000);
-    }),
-  ]);
-}
-
-async function getFunctionErrorMessage(error: unknown, fallback: string) {
-  let message = fallback;
-
-  try {
-    const body = await (error as { context?: { json?: () => Promise<{ error?: string }> } })?.context?.json?.();
-    if (body?.error) {
-      message = body.error;
-    }
-  } catch {
-    // Ignore body parsing failures and fall back to the error message below.
-  }
-
-  const fallbackMessage = (error as { message?: string })?.message;
-  if (fallbackMessage) {
-    message = fallbackMessage;
-  }
-
-  return message;
-}
+const playPackageName = import.meta.env.VITE_GOOGLE_PLAY_PACKAGE_NAME?.trim() || 'app.vercel.gastronom_iaa.twa';
 
 function buildGooglePlayState(data: GooglePlaySubscriptionStatus): SubscriptionState {
   return {
@@ -172,7 +137,7 @@ export function useSubscription() {
     return currentSession;
   }, [session]);
 
-  const checkSubscription = useCallback(async () => {
+    const checkSubscription = useCallback(async () => {
     try {
       const activeSession = await getActiveSession();
 
@@ -192,42 +157,26 @@ export function useSubscription() {
       }
 
       if (profile?.test_access) {
-        setState({
-          subscribed: true,
-          productId: 'test-access',
-          subscriptionEnd: null,
-          loading: false,
-        });
+        setState({ subscribed: true, productId: 'test-access', subscriptionEnd: null, loading: false });
         return;
       }
 
-      if (Capacitor.isNativePlatform()) {
-        // Pol√≠tica: Stripe s√≥ no web. Em nativo n√£o habilitar assinatura.
-        setState({
-          subscribed: false,
-          productId: null,
-          subscriptionEnd: null,
-          loading: false,
-        });
-        return;
+      // Android nativo: consultar estado no Google Play
+      if (isNativeAndroid() && isGooglePlayBillingConfigured()) {
+        const productId = getGooglePlaySubscriptionProductId();
+        if (productId) {
+          try {
+            const status = await GooglePlayBilling.getSubscriptionStatus({ productId });
+            setState(buildGooglePlayState(status));
+            return;
+          } catch (err) {
+            console.warn('Erro ao consultar assinatura no Google Play:', err);
+          }
+        }
       }
 
-      const { data, error } = await invokeEdgeFunction<{
-        product_id?: string | null;
-        subscribed?: boolean;
-        subscription_end?: string | null;
-      }>('check-subscription', { token: activeSession.access_token });
-
-      if (error) {
-        console.warn('Erro ao verificar assinatura:', error.message);
-      }
-
-      setState({
-        subscribed: data?.subscribed ?? false,
-        productId: data?.product_id ?? null,
-        subscriptionEnd: data?.subscription_end ?? null,
-        loading: false,
-      });
+      // Fora do app Play, tratamos como n„o assinado
+      setState({ subscribed: false, productId: null, subscriptionEnd: null, loading: false });
     } catch (err) {
       console.error('Error checking subscription:', err);
       setState((prev) => ({ ...prev, loading: false }));
@@ -255,7 +204,7 @@ export function useSubscription() {
     return () => window.removeEventListener(SUBSCRIPTION_REFRESH_EVENT, handleRefresh);
   }, [checkSubscription]);
 
-    const openCheckout = async () => {
+  const openCheckout = async () => {
     if (!Capacitor.isNativePlatform() && (await isPlayBillingAvailable())) {
       const result = await purchasePlaySubscription();
       window.dispatchEvent(new Event(SUBSCRIPTION_REFRESH_EVENT));
@@ -269,11 +218,29 @@ export function useSubscription() {
     throw new Error('Assinatura disponÌvel somente no app instalado via Google Play.');
   };
 
-    const openPortal = async () => {
-    throw new Error('Gerencie sua assinatura diretamente na Google Play Store.');
+  const openPortal = async () => {
+    const productId = getGooglePlaySubscriptionProductId();
+
+    // Native Android via plugin
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await GooglePlayBilling.openManageSubscriptions(productId ? { productId } : undefined);
+        return;
+      } catch (error) {
+        console.warn('[PORTAL] Falha no plugin, tentando URL', error);
+      }
+    }
+
+    // Web/TWA fallback: abre URL da Play Store
+    const url = new URL('https://play.google.com/store/account/subscriptions');
+    url.searchParams.set('package', playPackageName);
+    if (productId) url.searchParams.set('sku', productId);
+    await openBillingUrl(url.toString());
   };
 
   return { ...state, checkSubscription, openCheckout, openPortal };
 }
+
+
 
 
