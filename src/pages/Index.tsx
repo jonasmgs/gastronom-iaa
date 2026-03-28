@@ -55,11 +55,9 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem('last_ingredients');
-    if (saved) setIngredients(JSON.parse(saved));
-    
-    const recent = localStorage.getItem('recent_ingredients');
-    if (recent) setRecentIngredients(JSON.parse(recent));
+    // Não persistimos mais ingredientes; limpar qualquer resquício antigo
+    localStorage.removeItem('last_ingredients');
+    localStorage.removeItem('recent_ingredients');
   }, []);
 
   const handleGenerateClick = () => {
@@ -96,14 +94,6 @@ const Index = () => {
       return;
     }
     
-    // Salvar nos recentes (quando houver ingredientes)
-    if (ingredients.length) {
-      const updatedRecent = Array.from(new Set([...ingredients, ...recentIngredients])).slice(0, 15);
-      setRecentIngredients(updatedRecent);
-      localStorage.setItem('recent_ingredients', JSON.stringify(updatedRecent));
-      localStorage.setItem('last_ingredients', JSON.stringify(ingredients));
-    }
-
     setShowServingsModal(false);
     if (!user) return;
     setShowServingsModal(false);
@@ -155,9 +145,10 @@ Receita base: ${JSON.stringify(existing)}
         }));
 
         const stepsText = (existing.instructions || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        const stepLabel = t('recipe.stepByStep', 'Step');
         const parsedSteps = stepsText.map((text, idx) => ({
           step_number: idx + 1,
-          title: `Passo ${idx + 1}`,
+          title: `${stepLabel} ${idx + 1}`,
           description: text,
         }));
 
