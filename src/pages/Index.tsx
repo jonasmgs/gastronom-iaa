@@ -63,7 +63,8 @@ const Index = () => {
   }, []);
 
   const handleGenerateClick = () => {
-    if (ingredients.length < 2) {
+    // Permite gerar com descrição OU com pelo menos 2 ingredientes
+    if (ingredients.length < 2 && !description.trim()) {
       toast.error(t('home.minIngredients'));
       hapticsError();
       return;
@@ -95,11 +96,13 @@ const Index = () => {
       return;
     }
     
-    // Salvar nos recentes
-    const updatedRecent = Array.from(new Set([...ingredients, ...recentIngredients])).slice(0, 15);
-    setRecentIngredients(updatedRecent);
-    localStorage.setItem('recent_ingredients', JSON.stringify(updatedRecent));
-    localStorage.setItem('last_ingredients', JSON.stringify(ingredients));
+    // Salvar nos recentes (quando houver ingredientes)
+    if (ingredients.length) {
+      const updatedRecent = Array.from(new Set([...ingredients, ...recentIngredients])).slice(0, 15);
+      setRecentIngredients(updatedRecent);
+      localStorage.setItem('recent_ingredients', JSON.stringify(updatedRecent));
+      localStorage.setItem('last_ingredients', JSON.stringify(ingredients));
+    }
 
     setShowServingsModal(false);
     if (!user) return;
@@ -140,31 +143,66 @@ Receita base: ${JSON.stringify(existing)}
 `;
       }
 
-      const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
-        body: {
-          ingredients,
-          category,
-          complexity,
-          servings,
-          description: description.trim() || null,
-          filters: userFilters,
-          recipe_name: recipeName,
-          prompt_context: promptContext,
-          restrictions_text: restrictionsText,
-        },
-        token: session?.access_token,
-      });
-      
-      if (error) {
-        console.error('[DEBUG] Erro da Edge Function:', error);
-        throw error;
-      }
-      
-      console.log('[DEBUG] Resposta recebida:', data);
+      // Usa APIs públicas primeiro para evitar custo de IA
+      let recipe: RecipeGeneratorResponse | null = null;
+      const fromApi = existing.found;
 
-      const recipe = data;
-      console.log('[DEBUG] Resposta da API:', JSON.stringify(recipe, null, 2));
-      
+      if (fromApi) {
+        const parsedIngredients = (existing.ingredients || []).map((ing) => ({
+          name: ing,
+          quantity: ing,
+          calories: 0,
+        }));
+
+        const stepsText = (existing.instructions || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        const parsedSteps = stepsText.map((text, idx) => ({
+          step_number: idx + 1,
+          title: `Passo ${idx + 1}`,
+          description: text,
+        }));
+
+        recipe = {
+          recipe_name: existing.name || recipeName,
+          ingredients: parsedIngredients,
+          steps: parsedSteps,
+          preparation: existing.instructions || '',
+          calories_total: existing.nutrition ? Number(existing.nutrition['energy-kcal_100g'] || 0) : 0,
+          nutrition_info: existing.nutrition ? JSON.stringify(existing.nutrition) : undefined,
+          dietary_tags: restrictionsText ? restrictionsText.split(',').map((s) => s.trim()).filter(Boolean) : [],
+          servings,
+        };
+        console.log('[DEBUG] Receita vinda de API pública, sem custo de IA.');
+      } else {
+        const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
+          body: {
+            ingredients,
+            category,
+            complexity,
+            servings,
+            description: description.trim() || null,
+            filters: userFilters,
+            recipe_name: recipeName,
+            prompt_context: promptContext,
+            restrictions_text: restrictionsText,
+          },
+          token: session?.access_token,
+        });
+        
+        if (error) {
+          console.error('[DEBUG] Erro da Edge Function:', error);
+          throw error;
+        }
+        
+        console.log('[DEBUG] Resposta recebida:', data);
+        recipe = data;
+      }
+
+      if (!recipe) {
+        throw new Error('Falha ao obter receita.');
+      }
+
+      console.log('[DEBUG] Receita pronta:', JSON.stringify(recipe, null, 2));
+
       const safeIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
       const safeSteps = Array.isArray(recipe.steps) ? recipe.steps : [];
       
