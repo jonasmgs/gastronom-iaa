@@ -3,7 +3,6 @@ import { Capacitor } from '@capacitor/core';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
-import { openEmbeddedCheckout } from '@/hooks/useEmbeddedCheckout';
 import {
   getAndroidBillingUnavailableMessage,
   getGooglePlaySubscriptionProductId,
@@ -16,8 +15,6 @@ import {
   type GooglePlaySubscriptionStatus,
 } from '@/lib/google-play-billing';
 import { SUBSCRIPTION_REFRESH_EVENT } from '@/lib/subscription-events';
-import { shouldUseEmbeddedCheckoutBrowser } from '@/lib/checkout';
-import { hasStripePublishableKey } from '@/lib/stripe';
 import { isPlayBillingAvailable, purchasePlaySubscription } from '@/lib/digital-goods';
 import { useAuth } from './useAuth';
 
@@ -258,8 +255,7 @@ export function useSubscription() {
     return () => window.removeEventListener(SUBSCRIPTION_REFRESH_EVENT, handleRefresh);
   }, [checkSubscription]);
 
-  const openCheckout = async () => {
-    // TWA / PWA instalado via Play: Digital Goods API
+    const openCheckout = async () => {
     if (!Capacitor.isNativePlatform() && (await isPlayBillingAvailable())) {
       const result = await purchasePlaySubscription();
       window.dispatchEvent(new Event(SUBSCRIPTION_REFRESH_EVENT));
@@ -267,87 +263,17 @@ export function useSubscription() {
     }
 
     if (Capacitor.isNativePlatform()) {
-      throw new Error('Assinaturas via Stripe estão disponíveis apenas na versão web.');
+      throw new Error('Assinatura dispon�vel apenas pelo Google Play neste dispositivo.');
     }
 
-    const activeSession = await getActiveSession();
-    if (!activeSession) {
-      throw new Error('Sessao nao encontrada. Entre novamente para continuar.');
-    }
-
-    let shouldUseEmbedded = !Capacitor.isNativePlatform() && hasStripePublishableKey() && shouldUseEmbeddedCheckoutBrowser();
-
-    const invokeCheckout = (useEmbedded: boolean) =>
-      invokeWithTimeout<{
-        clientSecret?: string;
-        error?: string;
-        url?: string;
-      }>(
-        () =>
-          invokeEdgeFunction('create-checkout', {
-            body: { embedded: useEmbedded },
-            token: activeSession.access_token,
-          }),
-        'O servidor demorou muito para responder. Tente novamente.',
-      );
-
-    let { data, error } = await invokeCheckout(shouldUseEmbedded);
-
-    if (shouldUseEmbedded && error) {
-      console.warn('[CHECKOUT] Embedded checkout failed, falling back to hosted checkout', error);
-      shouldUseEmbedded = false;
-      ({ data, error } = await invokeCheckout(false));
-    }
-
-    if (error) {
-      throw new Error(await getFunctionErrorMessage(error, 'Erro ao criar checkout'));
-    }
-
-    if (data?.error) throw new Error(data.error);
-
-    if (shouldUseEmbedded) {
-      if (!data?.clientSecret) throw new Error('Nenhum client secret de checkout retornado');
-      openEmbeddedCheckout(data.clientSecret);
-      return;
-    }
-
-    if (!data?.url) throw new Error('Nenhuma URL de checkout retornada');
-
-    await openBillingUrl(data.url);
+    throw new Error('Assinatura dispon�vel somente no app instalado via Google Play.');
   };
 
-  const openPortal = async () => {
-    try {
-      if (Capacitor.isNativePlatform()) {
-        throw new Error('Portal de assinatura disponível apenas na versão web.');
-      }
-
-      const activeSession = await getActiveSession();
-      if (!activeSession) {
-        throw new Error('Sessao nao encontrada. Entre novamente para continuar.');
-      }
-
-      const { data, error } = await invokeWithTimeout<{ error?: string; url?: string }>(
-        () =>
-          invokeEdgeFunction('customer-portal', {
-            token: activeSession.access_token,
-          }),
-        'O servidor demorou muito para responder. Tente novamente.',
-      );
-
-      if (error) {
-        throw new Error(await getFunctionErrorMessage(error, 'Erro ao abrir portal'));
-      }
-
-      if (data?.error) throw new Error(data.error);
-      if (!data?.url) throw new Error('Nenhuma URL do portal retornada');
-
-      await openBillingUrl(data.url);
-    } catch (err) {
-      console.error('Error opening portal:', err);
-      throw err;
-    }
+    const openPortal = async () => {
+    throw new Error('Gerencie sua assinatura diretamente na Google Play Store.');
   };
 
   return { ...state, checkSubscription, openCheckout, openPortal };
 }
+
+
