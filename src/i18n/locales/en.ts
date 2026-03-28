@@ -23,6 +23,7 @@ export default {
     home: 'Home',
     edit: 'Edit',
     recipes: 'Recipes',
+    ingredients: 'Ingredients',
     shopping: 'Market',
     logout: 'Logout',
     settings: 'Settings',

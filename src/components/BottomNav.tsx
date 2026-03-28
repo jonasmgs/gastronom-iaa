@@ -1,4 +1,4 @@
-import { Home, BookOpen, LogOut, Wand2, Settings, ShoppingCart } from 'lucide-react';
+import { Home, BookOpen, LogOut, Wand2, Settings, ShoppingCart, Leaf } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ const BottomNav = () => {
   const items = [
     { icon: Home, label: t('nav.home'), path: '/' },
     { icon: BookOpen, label: t('nav.recipes'), path: '/recipes' },
+    { icon: Leaf, label: t('nav.ingredients'), path: '/ingredients' },
     { icon: ShoppingCart, label: t('nav.shopping'), path: '/shopping-list' },
     { icon: Settings, label: t('nav.settings'), path: '/settings' },
   ];

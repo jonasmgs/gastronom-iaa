@@ -19,6 +19,7 @@ export default {
     home: 'Accueil',
     edit: 'Éditer',
     recipes: 'Recettes',
+    ingredients: 'Ingrédients',
     logout: 'Déconnexion',
     settings: 'Réglages',
   },

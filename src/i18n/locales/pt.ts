@@ -24,6 +24,7 @@ export default {
     home: 'Início',
     edit: 'Editar',
     recipes: 'Minhas Receitas',
+    ingredients: 'Ingredientes',
     shopping: 'Mercado',
     settings: 'Ajustes',
     logout: 'Sair',

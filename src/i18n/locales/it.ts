@@ -19,6 +19,7 @@ export default {
     home: 'Home',
     edit: 'Modifica',
     recipes: 'Ricette',
+    ingredients: 'Ingredienti',
     logout: 'Esci',
     settings: 'Impost.',
   },
