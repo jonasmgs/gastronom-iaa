@@ -18,6 +18,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const MyRecipes = lazy(() => import("./pages/MyRecipes"));
 const ShoppingList = lazy(() => import("./pages/ShoppingList"));
+const Ingredients = lazy(() => import("./pages/Ingredients"));
 const RecipeResult = lazy(() => import("./pages/RecipeResult"));
 const EditRecipe = lazy(() => import("./pages/EditRecipe"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -116,6 +117,7 @@ const AppRoutes = () => {
           <Route path="/recipe/:id" element={<ProtectedRoute><RecipeResult /></ProtectedRoute>} />
           <Route path="/recipe/edit/:id" element={<ProtectedRoute><EditRecipe /></ProtectedRoute>} />
           <Route path="/shopping-list" element={<ProtectedRoute><ShoppingList /></ProtectedRoute>} />
+          <Route path="/ingredients" element={<ProtectedRoute><Ingredients /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
