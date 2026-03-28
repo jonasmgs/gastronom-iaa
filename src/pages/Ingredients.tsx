@@ -11,19 +11,23 @@ import { hapticsImpactMedium, hapticsImpactLight, hapticsSuccess } from '@/lib/h
 
 type IngredientCategory = {
   id: string;
-  name: string;
+  slug: string;
+  name?: string;
   items: string[];
 };
 
 const STORAGE_KEY = 'ingredient_categories';
 
-const DEFAULT_CATEGORIES = [
-  'Proteínas',
-  'Vegetais',
-  'Grãos',
-  'Temperos',
-  'Laticínios',
-  'Frutas',
+const DEFAULT_CATEGORY_SLUGS = [
+  'proteins',
+  'vegetables',
+  'grains',
+  'spices',
+  'dairy',
+  'fruits',
+  'seafood',
+  'beverages',
+  'others',
 ];
 
 const IngredientsPage = () => {
@@ -35,15 +39,87 @@ const IngredientsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [newIngredient, setNewIngredient] = useState('');
 
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'others';
+
+  const categoryLabel = (cat: IngredientCategory) => {
+    if (cat.name) return cat.name;
+    const key = `ingredients.cat_${cat.slug}`;
+    const translated = t(key);
+    return translated === key ? cat.slug : translated;
+  };
+
+  const ensureCategory = (slug: string) => {
+    const found = categories.find((c) => c.slug === slug);
+    if (found) return found;
+    const created: IngredientCategory = { id: generateId(), slug, items: [] };
+    const next = [created, ...categories];
+    setCategories(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    return created;
+  };
+
+  const guessCategorySlug = async (ingredient: string): Promise<string> => {
+    const text = ingredient.toLowerCase();
+    const keywordMap: Record<string, string[]> = {
+      proteins: ['frango', 'carne', 'boi', 'bife', 'porco', 'ovo', 'egg', 'chicken', 'beef', 'pork', 'tofu', 'tempeh', 'lamb', 'steak'],
+      vegetables: ['alface', 'couve', 'brocolis', 'cenoura', 'tomate', 'pepino', 'salad', 'lettuce', 'kale', 'broccoli', 'carrot', 'tomato', 'cucumber', 'spinach'],
+      fruits: ['maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'banana', 'orange', 'grape', 'mango', 'berry', 'strawberry'],
+      grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley'],
+      spices: ['pimenta', 'sal', 'ervas', 'oregano', 'alho', 'onion', 'garlic', 'pepper', 'spice', 'herb', 'paprika', 'curry'],
+      dairy: ['leite', 'queijo', 'manteiga', 'cream', 'milk', 'cheese', 'butter', 'yogurt'],
+      seafood: ['peixe', 'camarao', 'tilapia', 'fish', 'shrimp', 'salmon', 'tuna'],
+      beverages: ['suco', 'juice', 'cafe', 'coffee', 'cha', 'tea'],
+      others: [],
+    };
+    for (const [slug, words] of Object.entries(keywordMap)) {
+      if (words.some((w) => text.includes(w))) return slug;
+    }
+
+    // Tentativa com Open Food Facts para pegar categorias
+    try {
+      const response = await fetch(
+        `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(ingredient)}&json=1&page_size=1`,
+      );
+      const data = await response.json();
+      const tags: string[] = data?.products?.[0]?.categories_tags || [];
+      const tagStr = tags.join(' ').toLowerCase();
+      if (tagStr.includes('fruit')) return 'fruits';
+      if (tagStr.includes('vegetable')) return 'vegetables';
+      if (tagStr.includes('meat') || tagStr.includes('poultry')) return 'proteins';
+      if (tagStr.includes('fish') || tagStr.includes('seafood')) return 'seafood';
+      if (tagStr.includes('dairy')) return 'dairy';
+      if (tagStr.includes('cereal') || tagStr.includes('grain')) return 'grains';
+      if (tagStr.includes('spice') || tagStr.includes('herb')) return 'spices';
+      if (tagStr.includes('beverage') || tagStr.includes('drink')) return 'beverages';
+    } catch (err) {
+      console.warn('OpenFoodFacts lookup failed', err);
+    }
+
+    return 'others';
+  };
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        setCategories(JSON.parse(saved));
+        const parsed: any[] = JSON.parse(saved);
+        const migrated = parsed.map((c) => {
+          if (c.slug) return c;
+          const slug = slugify(c.name || '');
+          return { ...c, slug };
+        });
+        setCategories(migrated);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
       } else {
-        const seed = DEFAULT_CATEGORIES.map((name) => ({
+        const seed = DEFAULT_CATEGORY_SLUGS.map((slug) => ({
           id: generateId(),
-          name,
+          slug,
           items: [],
         }));
         setCategories(seed);
@@ -70,15 +146,14 @@ const IngredientsPage = () => {
 
   const handleAddCategory = () => {
     if (!newCategory.trim()) return;
-    const exists = categories.some(
-      (c) => c.name.toLowerCase() === newCategory.trim().toLowerCase(),
-    );
+    const slug = slugify(newCategory);
+    const exists = categories.some((c) => c.slug === slug);
     if (exists) {
       toast.error(t('ingredients.categoryExists'));
       return;
     }
     const next = [
-      { id: generateId(), name: newCategory.trim(), items: [] },
+      { id: generateId(), slug, name: newCategory.trim(), items: [] },
       ...categories,
     ];
     hapticsImpactMedium();
@@ -86,21 +161,27 @@ const IngredientsPage = () => {
     setNewCategory('');
   };
 
-  const handleAddIngredient = () => {
-    if (!selectedCategory) {
-      toast.error(t('ingredients.selectCategory'));
-      return;
+  const handleAddIngredient = async () => {
+    const ingredient = newIngredient.trim();
+    if (!ingredient) return;
+
+    let targetCategoryId = selectedCategory;
+
+    if (!targetCategoryId) {
+      const slug = await guessCategorySlug(ingredient);
+      const cat = ensureCategory(slug);
+      targetCategoryId = cat.id;
+      toast.success(t('ingredients.autoCategorized', 'Categoria detectada automaticamente.'));
     }
-    if (!newIngredient.trim()) return;
+
     const next = categories.map((cat) =>
-      cat.id === selectedCategory
-        ? { ...cat, items: [newIngredient.trim(), ...cat.items].slice(0, 50) }
+      cat.id === targetCategoryId
+        ? { ...cat, items: [ingredient, ...cat.items].slice(0, 50) }
         : cat,
     );
     hapticsImpactMedium();
     saveCategories(next);
     setNewIngredient('');
-    toast.success(t('ingredients.ingredientAdded'));
   };
 
   const handleRemoveIngredient = (catId: string, idx: number) => {
@@ -185,7 +266,7 @@ const IngredientsPage = () => {
             >
               <option value="">{t('ingredients.selectCategory')}</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                <option key={cat.id} value={cat.id}>{categoryLabel(cat)}</option>
               ))}
             </select>
             <input
@@ -226,7 +307,7 @@ const IngredientsPage = () => {
                       <Check className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-foreground">{cat.name}</p>
+                      <p className="text-sm font-bold text-foreground">{categoryLabel(cat)}</p>
                       <p className="text-xs text-muted-foreground">{cat.items.length} {t('ingredients.items', { count: cat.items.length, defaultValue: 'itens' })}</p>
                     </div>
                   </div>
