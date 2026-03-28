@@ -25,6 +25,7 @@ import bgIngredients4 from '@/assets/bg-ingredients-4.jpg';
 import bgUtensils from '@/assets/bg-utensils.jpg';
 import { useDietaryRestrictions } from '@/hooks/useDietaryRestrictions';
 import { searchRecipeFromAPIs, type DietaryFilters } from '@/utils/recipeSearch';
+import { addIngredientsAuto } from '@/utils/pantry';
 
 const bgImages = [bgIngredients, bgIngredients2, bgIngredients3, bgIngredients4, bgUtensils];
 
@@ -196,6 +197,13 @@ Receita base: ${JSON.stringify(existing)}
 
       const safeIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
       const safeSteps = Array.isArray(recipe.steps) ? recipe.steps : [];
+      // Alimenta a página de ingredientes (localStorage) sem duplicar
+      const pantryNames = safeIngredients.map((ing: any) => {
+        if (typeof ing === 'string') return ing;
+        if (ing?.name) return ing.name;
+        return [ing?.quantity, ing?.name].filter(Boolean).join(' ').trim();
+      }).filter((x) => !!x && typeof x === 'string');
+      addIngredientsAuto(pantryNames).catch((err) => console.warn('pantry update failed', err));
       
       const preparation = safeSteps.length > 0
         ? safeSteps.map((s: Step) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')

@@ -5,6 +5,50 @@ export interface DietaryFilters {
   vegetarian?: boolean;
 }
 
+type ExternalRecipe = {
+  name: string;
+  category?: string;
+  instructions?: string;
+  ingredients: string[];
+  thumbnail?: string;
+  nutrition?: any;
+  source?: string;
+};
+
+const spoonacularKey = import.meta.env.VITE_SPOONACULAR_KEY;
+
+// Busca no Spoonacular (requer API key)
+const searchSpoonacular = async (recipeName: string): Promise<{ found: false } | { found: true; data: ExternalRecipe }> => {
+  if (!spoonacularKey) return { found: false };
+  try {
+    const url = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(recipeName)}&addRecipeInformation=true&number=1&apiKey=${spoonacularKey}`;
+    const response = await fetch(url);
+    if (!response.ok) return { found: false };
+    const data = await response.json();
+    const result = data?.results?.[0];
+    if (!result) return { found: false };
+
+    const ingredients =
+      result.extendedIngredients?.map((ing: any) => `${ing.original}`.trim()).filter(Boolean) || [];
+
+    return {
+      found: true,
+      data: {
+        name: result.title,
+        category: result.dishTypes?.[0],
+        instructions: result.instructions || '',
+        ingredients,
+        thumbnail: result.image,
+        nutrition: result.nutrition,
+        source: 'Spoonacular',
+      },
+    };
+  } catch (err) {
+    console.warn('Spoonacular search failed', err);
+    return { found: false };
+  }
+};
+
 // Busca no TheMealDB
 const searchMealDB = async (recipeName: string) => {
   try {
@@ -73,7 +117,22 @@ export const searchRecipeFromAPIs = async (
   recipeName: string,
   filters: DietaryFilters,
 ) => {
-  // Busca em paralelo nas APIs disponíveis
+  // 1) Spoonacular (se tiver chave)
+  const spoon = await searchSpoonacular(recipeName);
+  if (spoon.found) {
+    return {
+      found: true,
+      source: spoon.data.source || 'Spoonacular',
+      name: spoon.data.name,
+      category: spoon.data.category,
+      instructions: spoon.data.instructions,
+      ingredients: spoon.data.ingredients,
+      thumbnail: spoon.data.thumbnail,
+      nutrition: spoon.data.nutrition,
+    };
+  }
+
+  // 2) MealDB (sem chave)
   const [mealDB, filterMeals] = await Promise.all([
     searchMealDB(recipeName),
     searchByDietaryFilter(filters),
