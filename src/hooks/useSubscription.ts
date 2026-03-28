@@ -18,6 +18,7 @@ import {
 import { SUBSCRIPTION_REFRESH_EVENT } from '@/lib/subscription-events';
 import { shouldUseEmbeddedCheckoutBrowser } from '@/lib/checkout';
 import { hasStripePublishableKey } from '@/lib/stripe';
+import { isPlayBillingAvailable, purchasePlaySubscription } from '@/lib/digital-goods';
 import { useAuth } from './useAuth';
 
 interface SubscriptionState {
@@ -258,6 +259,13 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const openCheckout = async () => {
+    // TWA / PWA instalado via Play: Digital Goods API
+    if (!Capacitor.isNativePlatform() && (await isPlayBillingAvailable())) {
+      const result = await purchasePlaySubscription();
+      window.dispatchEvent(new Event(SUBSCRIPTION_REFRESH_EVENT));
+      return result;
+    }
+
     if (Capacitor.isNativePlatform()) {
       throw new Error('Assinaturas via Stripe estão disponíveis apenas na versão web.');
     }
