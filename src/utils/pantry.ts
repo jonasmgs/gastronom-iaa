@@ -33,7 +33,7 @@ const keywordMap: Record<string, string[]> = {
   leaveners: ['fermento', 'baking powder', 'baking soda', 'yeast', 'fermenting', 'cream of tartar'],
   sweeteners: ['acucar', 'açúcar', 'sugar', 'mel', 'honey', 'stevia', 'adoçante', 'xylitol', 'eritritol', 'erythritol', 'agave', 'maple'],
   spices: ['pimenta', 'sal', 'ervas', 'oregano', 'alho', 'onion', 'garlic', 'pepper', 'spice', 'herb', 'paprika', 'curry'],
-  dairy: ['leite', 'queijo', 'manteiga', 'cream', 'milk', 'cheese', 'butter', 'yogurt'],
+  dairy: ['leite', 'queijo', 'manteiga', 'manteiga sem sal', 'cream', 'milk', 'cheese', 'butter', 'yogurt'],
   seafood: ['peixe', 'camarao', 'tilapia', 'fish', 'shrimp', 'salmon', 'tuna'],
   beverages: ['suco', 'juice', 'cafe', 'coffee', 'cha', 'tea'],
   others: [],
@@ -46,6 +46,18 @@ export const slugify = (text: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'others';
+
+const normalizeIngredientName = (raw: string) => {
+  const cleaned = raw.split('(')[0].replace(/[.,]+$/,'').trim();
+  const display = cleaned || raw.trim();
+  const normalized = display
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return { display, normalized };
+};
 
 const migrate = (cats: any[]): PantryCategory[] =>
   cats.map((c) => {
@@ -109,27 +121,27 @@ export const guessCategorySlug = async (ingredient: string): Promise<string> => 
 };
 
 const ingredientExists = (cats: PantryCategory[], ingredient: string) => {
-  const lower = ingredient.toLowerCase();
-  return cats.some((c) => c.items.some((i) => i.toLowerCase() === lower));
+  const norm = normalizeIngredientName(ingredient).normalized;
+  return cats.some((c) => c.items.some((i) => normalizeIngredientName(i).normalized === norm));
 };
 
 export const addIngredientAuto = async (
   ingredient: string,
   preferredCategoryId?: string,
 ): Promise<PantryCategory[]> => {
-  const clean = ingredient.trim();
-  if (!clean) return loadCategories();
+  const { display, normalized } = normalizeIngredientName(ingredient);
+  if (!display) return loadCategories();
 
   let cats = loadCategories();
 
   // dedupe global
-  if (ingredientExists(cats, clean)) return cats;
+  if (ingredientExists(cats, display)) return cats;
 
   let targetId = preferredCategoryId;
   let targetSlug: string | null = null;
 
   if (!targetId) {
-    targetSlug = await guessCategorySlug(clean);
+    targetSlug = await guessCategorySlug(normalized);
     let target = cats.find((c) => c.slug === targetSlug);
     if (!target) {
       target = { id: generateId(), slug: targetSlug, items: [] };
@@ -139,7 +151,7 @@ export const addIngredientAuto = async (
   }
 
   const next = cats.map((c) =>
-    c.id === targetId ? { ...c, items: [clean, ...c.items].slice(0, 50) } : c,
+    c.id === targetId ? { ...c, items: [display, ...c.items].slice(0, 50) } : c,
   );
   return saveCategories(next);
 };
@@ -147,15 +159,15 @@ export const addIngredientAuto = async (
 export const addIngredientsAuto = async (ingredients: string[]) => {
   let cats = loadCategories();
   for (const ing of ingredients) {
-    const clean = ing?.trim();
-    if (!clean || ingredientExists(cats, clean)) continue;
-    const slug = await guessCategorySlug(clean);
+    const { display, normalized } = normalizeIngredientName(ing || '');
+    if (!display || ingredientExists(cats, display)) continue;
+    const slug = await guessCategorySlug(normalized);
     let target = cats.find((c) => c.slug === slug);
     if (!target) {
       target = { id: generateId(), slug, items: [] };
       cats = [target, ...cats];
     }
-    target.items = [clean, ...target.items].slice(0, 50);
+    target.items = [display, ...target.items].slice(0, 50);
   }
   return saveCategories(cats);
 };
