@@ -152,8 +152,11 @@ export default {
     cat_spices: 'Spezie',
     cat_dairy: 'Latticini',
     cat_fruits: 'Frutta',
+    cat_flours: 'Farine',
+    cat_leaveners: 'Lieviti',
     cat_seafood: 'Frutti di mare',
     cat_beverages: 'Bevande',
+    cat_sweeteners: 'Dolcificanti',
     cat_others: 'Altro',
   },
   edit: {

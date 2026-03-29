@@ -14,6 +14,7 @@ export const DEFAULT_CATEGORY_SLUGS = [
   'vegetables',
   'grains',
   'flours',
+  'leaveners',
   'spices',
   'dairy',
   'fruits',
@@ -29,6 +30,7 @@ const keywordMap: Record<string, string[]> = {
   fruits: ['maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'banana', 'orange', 'grape', 'mango', 'berry', 'strawberry'],
   grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley', 'cereal'],
   flours: ['farinha', 'flour', 'trigo', 'rice flour', 'almond flour', 'oat flour', 'corn starch', 'maizena'],
+  leaveners: ['fermento', 'baking powder', 'baking soda', 'yeast', 'fermenting', 'cream of tartar'],
   sweeteners: ['acucar', 'açúcar', 'sugar', 'mel', 'honey', 'stevia', 'adoçante', 'xylitol', 'eritritol', 'erythritol', 'agave', 'maple'],
   spices: ['pimenta', 'sal', 'ervas', 'oregano', 'alho', 'onion', 'garlic', 'pepper', 'spice', 'herb', 'paprika', 'curry'],
   dairy: ['leite', 'queijo', 'manteiga', 'cream', 'milk', 'cheese', 'butter', 'yogurt'],
@@ -92,6 +94,7 @@ export const guessCategorySlug = async (ingredient: string): Promise<string> => 
     if (tagStr.includes('fruit')) return 'fruits';
     if (tagStr.includes('vegetable')) return 'vegetables';
     if (tagStr.includes('meat') || tagStr.includes('poultry')) return 'proteins';
+    if (tagStr.includes('leaven') || tagStr.includes('yeast')) return 'leaveners';
     if (tagStr.includes('flour') || tagStr.includes('starch')) return 'flours';
     if (tagStr.includes('sugar') || tagStr.includes('sweetener') || tagStr.includes('honey')) return 'sweeteners';
     if (tagStr.includes('fish') || tagStr.includes('seafood')) return 'seafood';

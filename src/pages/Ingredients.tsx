@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Leaf, FolderPlus, X, Check, ArrowLeft, Wheat, Coffee, Fish, Apple, Candy, Cookie, Beef, Circle } from 'lucide-react';
+import { Plus, Trash2, Leaf, X, Check, ArrowLeft, Wheat, Coffee, Fish, Apple, Candy, Cookie, Beef, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
@@ -106,6 +106,23 @@ const IngredientsPage = () => {
     hapticsImpactMedium();
     setAndSave(cleared);
     toast.success(t('ingredients.clearedAll'));
+  };
+
+  const renderCategoryIcon = (slug: string) => {
+    switch (slug) {
+      case 'proteins': return <Beef className="h-4 w-4" />;
+      case 'vegetables': return <Leaf className="h-4 w-4" />;
+      case 'fruits': return <Apple className="h-4 w-4" />;
+      case 'grains': return <Wheat className="h-4 w-4" />;
+      case 'flours': return <Cookie className="h-4 w-4" />;
+      case 'leaveners': return <Circle className="h-4 w-4" />;
+      case 'sweeteners': return <Candy className="h-4 w-4" />;
+      case 'spices': return <Leaf className="h-4 w-4" />;
+      case 'dairy': return <Cookie className="h-4 w-4" />;
+      case 'seafood': return <Fish className="h-4 w-4" />;
+      case 'beverages': return <Coffee className="h-4 w-4" />;
+      default: return <Circle className="h-4 w-4" />;
+    }
   };
 
   return (

@@ -174,8 +174,11 @@ export default {
     cat_spices: 'Temperos',
     cat_dairy: 'Laticínios',
     cat_fruits: 'Frutas',
+    cat_flours: 'Farinhas',
+    cat_leaveners: 'Fermentos',
     cat_seafood: 'Frutos do mar',
     cat_beverages: 'Bebidas',
+    cat_sweeteners: 'Adoçantes',
     cat_others: 'Outros',
   },
   edit: {

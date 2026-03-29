@@ -236,8 +236,11 @@ export default {
     cat_spices: 'Gewürze',
     cat_dairy: 'Milchprodukte',
     cat_fruits: 'Obst',
+    cat_flours: 'Mehle',
+    cat_leaveners: 'Triebmittel',
     cat_seafood: 'Meeresfrüchte',
     cat_beverages: 'Getränke',
+    cat_sweeteners: 'Süßungsmittel',
     cat_others: 'Andere',
   },
   book: {

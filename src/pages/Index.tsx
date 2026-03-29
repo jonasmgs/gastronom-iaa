@@ -55,6 +55,25 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Importa ingredientes selecionados na página de Ingredientes
+  useEffect(() => {
+    const selected = localStorage.getItem('selected_ingredients');
+    if (selected) {
+      try {
+        const parsed: string[] = JSON.parse(selected);
+        if (Array.isArray(parsed) && parsed.length) {
+          // Dedupe com os já existentes
+          const merged = Array.from(new Set([...ingredients, ...parsed]));
+          setIngredients(merged);
+        }
+      } catch (err) {
+        console.warn('Failed to parse selected_ingredients', err);
+      } finally {
+        localStorage.removeItem('selected_ingredients');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     // Não persistimos mais ingredientes; limpar qualquer resquício antigo
     localStorage.removeItem('last_ingredients');

@@ -171,8 +171,11 @@ export default {
     cat_spices: 'Spices',
     cat_dairy: 'Dairy',
     cat_fruits: 'Fruits',
+    cat_flours: 'Flours',
+    cat_leaveners: 'Leaveners',
     cat_seafood: 'Seafood',
     cat_beverages: 'Beverages',
+    cat_sweeteners: 'Sweeteners',
     cat_others: 'Others',
   },
   edit: {
