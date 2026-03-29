@@ -154,6 +154,7 @@ export default {
     cat_fruits: 'Frutta',
     cat_flours: 'Farine',
     cat_leaveners: 'Lieviti',
+    cat_vegan: 'Vegano (plant-based)',
     cat_seafood: 'Frutti di mare',
     cat_beverages: 'Bevande',
     cat_sweeteners: 'Dolcificanti',

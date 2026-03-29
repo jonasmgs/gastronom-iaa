@@ -119,6 +119,7 @@ const IngredientsPage = () => {
       case 'leaveners': return <Circle className="h-4 w-4" />;
       case 'oils': return <Droplets className="h-4 w-4" />;
       case 'sweeteners': return <Candy className="h-4 w-4" />;
+      case 'vegan': return <Leaf className="h-4 w-4" />;
       case 'spices': return <Leaf className="h-4 w-4" />;
       case 'dairy': return <Cookie className="h-4 w-4" />;
       case 'seafood': return <Fish className="h-4 w-4" />;

@@ -238,6 +238,7 @@ export default {
     cat_fruits: 'Obst',
     cat_flours: 'Mehle',
     cat_leaveners: 'Triebmittel',
+    cat_vegan: 'Vegan (pflanzlich)',
     cat_seafood: 'Meeresfrüchte',
     cat_beverages: 'Getränke',
     cat_sweeteners: 'Süßungsmittel',
