@@ -23,6 +23,7 @@ const IngredientsPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [newIngredient, setNewIngredient] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
 
   const categoryLabel = (cat: PantryCategory) => {
@@ -112,21 +113,22 @@ const IngredientsPage = () => {
   const renderCategoryIcon = (slug: string) => {
     switch (slug) {
       case 'proteins': return <Beef className="h-4 w-4" />;
-      case 'vegetables': return <Leaf className="h-4 w-4" />;
-      case 'fruits': return <Apple className="h-4 w-4" />;
-      case 'grains': return <Wheat className="h-4 w-4" />;
-      case 'flours': return <Cookie className="h-4 w-4" />;
-      case 'leaveners': return <Circle className="h-4 w-4" />;
-      case 'oils': return <Droplets className="h-4 w-4" />;
-      case 'sweeteners': return <Candy className="h-4 w-4" />;
-      case 'vegan': return <Leaf className="h-4 w-4" />;
-      case 'spices': return <Leaf className="h-4 w-4" />;
-      case 'dairy': return <Cookie className="h-4 w-4" />;
-      case 'seafood': return <Fish className="h-4 w-4" />;
-      case 'beverages': return <Coffee className="h-4 w-4" />;
+      case 'produce': return <Apple className="h-4 w-4" />;
+      case 'dairy': return <Droplets className="h-4 w-4" />;
+      case 'others': return <Circle className="h-4 w-4" />;
       default: return <Circle className="h-4 w-4" />;
     }
   };
+
+  const filteredCategories = categories
+    .map(cat => ({
+      ...cat,
+      items: searchQuery.length >= 3 
+        ? cat.items.filter(item => item.toLowerCase().includes(searchQuery.toLowerCase()))
+        : cat.items
+    }))
+    .filter(cat => cat.items.length > 0 || searchQuery.length < 3)
+    .sort((a, b) => categoryLabel(a).localeCompare(categoryLabel(b)));
 
   return (
     <main className="min-h-screen bg-background pb-36 sm:pb-40">
@@ -188,6 +190,24 @@ const IngredientsPage = () => {
           </div>
         </div>
 
+        {/* Search Filter */}
+        <div className="relative">
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('ingredients.searchPlaceholder')}
+            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none shadow-sm"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
         {/* Categories List */}
         <div className="space-y-4">
           {loading ? (
@@ -203,7 +223,7 @@ const IngredientsPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {categories.map((cat) => (
+              {filteredCategories.map((cat) => (
                 <div key={cat.id} className="border border-border rounded-2xl bg-card p-4 shadow-sm">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm">
@@ -215,7 +235,7 @@ const IngredientsPage = () => {
                     </div>
                   </div>
                   <AnimatePresence initial={false}>
-                    {cat.items.map((item, idx) => {
+                    {[...cat.items].sort((a, b) => a.localeCompare(b)).map((item, idx) => {
                       const key = `${cat.id}:${item}`;
                       const checked = Boolean(selectedItems[key]);
                       return (

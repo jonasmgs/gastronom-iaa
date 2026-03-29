@@ -11,35 +11,15 @@ const STORAGE_KEY = 'ingredient_categories';
 
 export const DEFAULT_CATEGORY_SLUGS = [
   'proteins',
-  'vegetables',
-  'grains',
-  'flours',
-  'leaveners',
-  'spices',
-  'oils',
+  'produce',
   'dairy',
-  'fruits',
-  'sweeteners',
-  'vegan',
-  'seafood',
-  'beverages',
   'others',
 ];
 
 const keywordMap: Record<string, string[]> = {
-  proteins: ['frango', 'carne', 'boi', 'bife', 'porco', 'ovo', 'egg', 'chicken', 'beef', 'pork', 'tofu', 'tempeh', 'lamb', 'steak'],
-  vegetables: ['alface', 'couve', 'brocolis', 'cenoura', 'tomate', 'pepino', 'salad', 'lettuce', 'kale', 'broccoli', 'carrot', 'tomato', 'cucumber', 'spinach'],
-  fruits: ['maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'orange', 'grape', 'mango', 'berry', 'strawberry', 'lemon', 'lime'],
-  grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley', 'cereal', 'pao', 'pão', 'bread', 'toast', 'baguette', 'brioche', 'wholemeal'],
-  flours: ['farinha', 'flour', 'trigo', 'maizena', 'starch'],
-  leaveners: ['fermento', 'baking', 'yeast', 'bicarbonato', 'soda'],
-  oils: ['oleo', 'óleo', 'oil', 'azeite', 'canola', 'girassol', 'sunflower', 'coco', 'coconut'],
-  vegan: ['leite de amendoa', 'leite de amêndoa', 'almond milk', 'oat milk', 'leite de aveia', 'rice milk', 'leite de arroz', 'coconut milk', 'leite de coco', 'soy milk', 'leite de soja', 'plant milk', 'plant-based milk', 'proteina de soja', 'proteína de soja', 'soy protein', 'seitan', 'tempeh', 'tofu', 'plant-based', 'vegano', 'vegan'],
-  sweeteners: ['acucar', 'açúcar', 'sugar', 'mel', 'honey', 'stevia', 'adoçante', 'xylitol', 'eritritol', 'erythritol', 'agave', 'maple'],
-  spices: ['pimenta', 'sal', 'ervas', 'oregano', 'alho', 'onion', 'garlic', 'pepper', 'spice', 'herb', 'paprika', 'curry'],
+  proteins: ['frango', 'carne', 'boi', 'bife', 'porco', 'ovo', 'egg', 'chicken', 'beef', 'pork', 'tofu', 'tempeh', 'lamb', 'steak', 'peixe', 'camarao', 'tilapia', 'fish', 'shrimp', 'salmon', 'tuna'],
+  produce: ['alface', 'couve', 'brocolis', 'cenoura', 'tomate', 'pepino', 'salad', 'lettuce', 'kale', 'broccoli', 'carrot', 'tomato', 'cucumber', 'spinach', 'maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'orange', 'grape', 'mango', 'berry', 'strawberry', 'lemon', 'lime'],
   dairy: ['leite', 'queijo', 'manteiga', 'manteiga sem sal', 'cream', 'milk', 'cheese', 'butter', 'yogurt'],
-  seafood: ['peixe', 'camarao', 'tilapia', 'fish', 'shrimp', 'salmon', 'tuna'],
-  beverages: ['suco', 'juice', 'cafe', 'coffee', 'cha', 'tea'],
   others: [],
 };
 
@@ -64,23 +44,46 @@ const normalizeIngredientName = (raw: string) => {
   return { display, normalized };
 };
 
-const migrate = (cats: any[]): PantryCategory[] =>
-  cats.map((c) => {
-    if (c.slug) return c as PantryCategory;
-    return { ...c, slug: slugify(c.name || '') || 'others' } as PantryCategory;
+const migrate = (cats: any[]): PantryCategory[] => {
+  const mapping: Record<string, string> = {
+    proteins: 'proteins',
+    seafood: 'proteins',
+    vegetables: 'produce',
+    fruits: 'produce',
+    produce: 'produce',
+    dairy: 'dairy',
+  };
+
+  const consolidated: Record<string, PantryCategory> = {};
+
+  // Initialize defaults
+  DEFAULT_CATEGORY_SLUGS.forEach(slug => {
+    consolidated[slug] = { id: generateId(), slug, items: [] };
   });
+
+  cats.forEach((c) => {
+    const oldSlug = c.slug || slugify(c.name || '') || 'others';
+    const newSlug = mapping[oldSlug] || 'others';
+    
+    // Merge items into the new slug
+    const target = consolidated[newSlug];
+    if (target && Array.isArray(c.items)) {
+      c.items.forEach((item: string) => {
+        if (!target.items.includes(item)) {
+          target.items.push(item);
+        }
+      });
+    }
+  });
+
+  return Object.values(consolidated);
+};
 
 export const loadCategories = (): PantryCategory[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = migrate(JSON.parse(raw));
-      const unique: Record<string, PantryCategory> = {};
-      parsed.forEach((c) => { unique[c.slug] = unique[c.slug] || c; });
-      DEFAULT_CATEGORY_SLUGS.forEach((slug) => { if (!unique[slug]) unique[slug] = { id: generateId(), slug, items: [] }; });
-      const arr = Object.values(unique);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-      return arr;
+      return migrate(JSON.parse(raw));
     }
     const seed = DEFAULT_CATEGORY_SLUGS.map((slug) => ({
       id: generateId(),
@@ -112,18 +115,10 @@ export const guessCategorySlug = async (ingredient: string): Promise<string> => 
     const data = await response.json();
     const tags: string[] = data?.products?.[0]?.categories_tags || [];
     const tagStr = tags.join(' ').toLowerCase();
-    if (tagStr.includes('bread')) return 'grains';
-    if (tagStr.includes('fruit')) return 'fruits';
-    if (tagStr.includes('vegetable')) return 'vegetables';
-    if (tagStr.includes('meat') || tagStr.includes('poultry')) return 'proteins';
-    if (tagStr.includes('leaven') || tagStr.includes('yeast')) return 'leaveners';
-    if (tagStr.includes('flour') || tagStr.includes('starch')) return 'flours';
-    if (tagStr.includes('sugar') || tagStr.includes('sweetener') || tagStr.includes('honey')) return 'sweeteners';
-    if (tagStr.includes('fish') || tagStr.includes('seafood')) return 'seafood';
-    if (tagStr.includes('dairy')) return 'dairy';
-    if (tagStr.includes('cereal') || tagStr.includes('grain')) return 'grains';
-    if (tagStr.includes('spice') || tagStr.includes('herb')) return 'spices';
-    if (tagStr.includes('beverage') || tagStr.includes('drink')) return 'beverages';
+    
+    if (tagStr.includes('meat') || tagStr.includes('poultry') || tagStr.includes('fish') || tagStr.includes('seafood')) return 'proteins';
+    if (tagStr.includes('fruit') || tagStr.includes('vegetable')) return 'produce';
+    if (tagStr.includes('dairy') || tagStr.includes('cheese') || tagStr.includes('milk')) return 'dairy';
   } catch (err) {
     console.warn('OpenFoodFacts lookup failed', err);
   }
