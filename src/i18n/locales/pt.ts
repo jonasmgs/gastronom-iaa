@@ -48,7 +48,7 @@ export default {
     appSlogan: 'Crie receitas incríveis com o que você tem em casa',
     continueWithApple: 'Continuar com Apple',
     continueWithGoogle: 'Continuar com Google',
-    orContinueWithEmail: 'Ou continue com e-mail',
+    orContinueWithEmail: 'Login apenas com Apple ou Google',
   },
   home: {
     hello: 'Olá,',

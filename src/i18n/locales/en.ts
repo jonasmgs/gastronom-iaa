@@ -44,7 +44,7 @@ export default {
     unexpectedError: 'Unexpected error',
     continueWithApple: 'Continue with Apple',
     continueWithGoogle: 'Continue with Google',
-    orContinueWithEmail: 'Or continue with email',
+    orContinueWithEmail: 'Sign in only with Apple or Google',
     sessionExpired: 'Your session was ended because you logged in on another device.',
     appName: 'Gastronom.IA',
     appSlogan: 'Create amazing recipes with what you have at home',
