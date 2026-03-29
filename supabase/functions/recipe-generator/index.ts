@@ -338,8 +338,8 @@ serve(async (req) => {
     }
 
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
-    // Modelo IA (fallback) - leve e rápido
-    const model = "gemini-1.5-flash";
+    // Modelo IA (fallback) - leve, rápido e aderente à cota v1beta
+    const model = "gemini-2.0-flash";
 
     const aiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
