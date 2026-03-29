@@ -160,60 +160,34 @@ Receita base: ${JSON.stringify(existing)}
 `;
       }
 
-      // Usa APIs públicas primeiro para evitar custo de IA
       let recipe: RecipeGeneratorResponse | null = null;
       const fromApi = existing.found;
 
-      if (fromApi) {
-        const parsedIngredients = (existing.ingredients || []).map((ing) => ({
-          name: ing,
-          quantity: ing,
-          calories: 0,
-        }));
-
-        const stepsText = (existing.instructions || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-        const stepLabel = t('recipe.stepByStep', 'Step');
-        const parsedSteps = stepsText.map((text, idx) => ({
-          step_number: idx + 1,
-          title: `${stepLabel} ${idx + 1}`,
-          description: text,
-        }));
-
-        recipe = {
-          recipe_name: existing.name || recipeName,
-          ingredients: parsedIngredients,
-          steps: parsedSteps,
-          preparation: existing.instructions || '',
-          calories_total: existing.nutrition ? Number(existing.nutrition['energy-kcal_100g'] || 0) : 0,
-          nutrition_info: existing.nutrition ? JSON.stringify(existing.nutrition) : undefined,
-          dietary_tags: restrictionsText ? restrictionsText.split(',').map((s) => s.trim()).filter(Boolean) : [],
-          servings,
-        };
-        console.log('[DEBUG] Receita vinda de API pública, sem custo de IA.');
-      } else {
+      // Chama a Edge Function da IA quer seja para criar do zero ou para traduzir/adaptar
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: {
+          mode: fromApi ? 'transform' : 'generate',
+          existing_recipe: fromApi ? JSON.stringify(existing) : undefined,
           ingredients: ingredientsForRequest,
           category,
           complexity,
           servings,
           description: description.trim() || null,
           filters: userFilters,
-            recipe_name: recipeName,
-            prompt_context: promptContext,
-            restrictions_text: restrictionsText,
-          },
-          token: session?.access_token,
-        });
+          recipe_name: recipeName,
+          prompt_context: promptContext,
+          restrictions_text: restrictionsText,
+        },
+        token: session?.access_token,
+      });
         
-        if (error) {
-          console.error('[DEBUG] Erro da Edge Function:', error);
-          throw error;
-        }
-        
-        console.log('[DEBUG] Resposta recebida:', data);
-        recipe = data;
+      if (error) {
+        console.error('[DEBUG] Erro da Edge Function:', error);
+        throw error;
       }
+        
+      console.log('[DEBUG] Resposta recebida:', data);
+      recipe = data;
 
       if (!recipe) {
         throw new Error('Falha ao obter receita.');
