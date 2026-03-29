@@ -339,7 +339,7 @@ serve(async (req) => {
 
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
     // Modelo IA (fallback) - leve e rápido
-    const model = "gemini-2.5-flash-lite";
+    const model = "gemini-2.0-flash-lite";
 
     const aiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
@@ -395,4 +395,5 @@ serve(async (req) => {
     });
   }
 });
+
 
