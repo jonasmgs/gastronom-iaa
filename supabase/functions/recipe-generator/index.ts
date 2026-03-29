@@ -131,15 +131,18 @@ function normalizeIngredients(value: unknown): Ingredient[] {
         }
 
         // Hard conversion map to ensure metric units
-        if (quantity.includes("ovo")) quantity = `${Math.round(num * 50)}g`;
-        else if (quantity.includes("alho")) quantity = `${Math.round(num * 5)}g`;
-        else if (quantity.includes("cebola")) quantity = `${Math.round(num * 150)}g`;
-        else if (quantity.includes("xícara") || quantity.includes("copo")) quantity = `${Math.round(num * 200)}g`;
-        else if (quantity.includes("colher de sopa")) quantity = `${Math.round(num * 15)}g`;
-        else if (quantity.includes("colher de chá")) quantity = `${Math.round(num * 5)}g`;
+        const nameLower = String(record.name ?? "").toLowerCase();
+        if (nameLower.includes("ovo") || quantity.includes("ovo")) quantity = `${Math.round(num * 50)}g`;
+        else if (nameLower.includes("alho") || quantity.includes("alho")) quantity = `${Math.round(num * 5)}g`;
+        else if (nameLower.includes("cebola") || quantity.includes("cebola")) quantity = `${Math.round(num * 150)}g`;
+        else if (nameLower.includes("tomate") || quantity.includes("tomate")) quantity = `${Math.round(num * 120)}g`;
+        else if (quantity.includes("xícara") || quantity.includes("copo") || quantity.includes("xicara")) quantity = `${Math.round(num * 200)}g`;
+        else if (quantity.includes("colher de sopa") || quantity.includes("colher (sopa)")) quantity = `${Math.round(num * 15)}g`;
+        else if (quantity.includes("colher de chá") || quantity.includes("colher (chá)")) quantity = `${Math.round(num * 5)}g`;
         else if (quantity.includes("fatia")) quantity = `${Math.round(num * 30)}g`;
         else if (quantity.includes("pitada")) quantity = `1g`;
-        else if (quantity.includes("maço")) quantity = `100g`;
+        else if (quantity.includes("maço") || quantity.includes("maco")) quantity = `100g`;
+        else if (nameLower.includes("limão") || nameLower.includes("limao")) quantity = `${Math.round(num * 40)}ml`;
         else {
           // If we don't know the density, we assume it's roughly 100g/unit
           quantity = `${Math.round(num * 100)}g`;
@@ -279,7 +282,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     userPrompt: [
       "Crie uma receita completa usando os ingredientes abaixo.",
       `Ingredientes: ${ingredients.join(", ")}.`,
-      description ? `Descricao do prato desejado: ${description}.` : "",
+      description ? `Descricao do prato desejado (Atenção: interprete palavras sem acento em Português-BR. Ex: "pao" significa pão/bread, não Kung Pao): ${description}.` : "",
       baseUserPrompt,
     ].filter(Boolean).join("\n\n"),
   };
