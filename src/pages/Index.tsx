@@ -112,6 +112,13 @@ const Index = () => {
         lactoseFree: Boolean(dietaryFilters.lactoseFree),
       };
 
+      // Se não há ingredientes, use a descrição como “ingrediente” fictício para não bloquear fluxos que exigem lista
+      const ingredientsForRequest = ingredients.length > 0
+        ? ingredients
+        : description.trim()
+          ? [description.trim()]
+          : ['ingrediente'];
+
       const existing = await searchRecipeFromAPIs(recipeName, userFilters);
       const restrictionsText = [
         userFilters.vegan ? 'VEGANO' : '',
@@ -165,14 +172,14 @@ Receita base: ${JSON.stringify(existing)}
         };
         console.log('[DEBUG] Receita vinda de API pública, sem custo de IA.');
       } else {
-        const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
-          body: {
-            ingredients,
-            category,
-            complexity,
-            servings,
-            description: description.trim() || null,
-            filters: userFilters,
+      const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
+        body: {
+          ingredients: ingredientsForRequest,
+          category,
+          complexity,
+          servings,
+          description: description.trim() || null,
+          filters: userFilters,
             recipe_name: recipeName,
             prompt_context: promptContext,
             restrictions_text: restrictionsText,
