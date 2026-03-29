@@ -53,7 +53,8 @@ const RecipeFilters = ({
   const addIngredient = () => {
     const trimmed = ingredientInput.trim();
     if (!trimmed) return;
-    if (ingredients.includes(trimmed)) {
+    const exists = ingredients.some(i => i.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
       toast.error(t('home.alreadyAdded'));
       return;
     }
@@ -72,6 +73,8 @@ const RecipeFilters = ({
             value={description}
             onChange={e => onDescriptionChange(e.target.value)}
             placeholder={t('home.descriptionPlaceholder')}
+            spellCheck
+            autoCorrect="on"
             className="w-full rounded-xl border border-input bg-card/90 backdrop-blur-sm px-3 py-2.5 text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -176,6 +179,8 @@ const RecipeFilters = ({
             onChange={e => setIngredientInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addIngredient(); } }}
             placeholder={t('home.ingredientPlaceholder')}
+            spellCheck
+            autoCorrect="on"
             className="flex-1 rounded-xl border border-input bg-card/90 backdrop-blur-sm py-3 px-4 text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button

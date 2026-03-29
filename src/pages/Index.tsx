@@ -62,9 +62,9 @@ const Index = () => {
   }, []);
 
   const handleGenerateClick = () => {
-    // Permite gerar com descrição OU com pelo menos 2 ingredientes
-    if (ingredients.length < 2 && !description.trim()) {
-      toast.error(t('home.minIngredients'));
+    // Permite gerar com qualquer quantidade de ingredientes ou só descrição
+    if (ingredients.length === 0 && !description.trim()) {
+      toast.error(t('home.addIngredients', 'Adicione algo ou descreva o prato.'));
       hapticsError();
       return;
     }
