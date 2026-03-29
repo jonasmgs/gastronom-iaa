@@ -30,7 +30,7 @@ const keywordMap: Record<string, string[]> = {
   proteins: ['frango', 'carne', 'boi', 'bife', 'porco', 'ovo', 'egg', 'chicken', 'beef', 'pork', 'tofu', 'tempeh', 'lamb', 'steak'],
   vegetables: ['alface', 'couve', 'brocolis', 'cenoura', 'tomate', 'pepino', 'salad', 'lettuce', 'kale', 'broccoli', 'carrot', 'tomato', 'cucumber', 'spinach'],
   fruits: ['maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'orange', 'grape', 'mango', 'berry', 'strawberry', 'lemon', 'lime'],
-  grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley', 'cereal'],
+  grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley', 'cereal', 'pao', 'pão', 'bread', 'toast', 'baguette', 'brioche', 'wholemeal'],
   flours: ['farinha', 'flour', 'trigo', 'maizena', 'starch'],
   leaveners: ['fermento', 'baking', 'yeast', 'bicarbonato', 'soda'],
   oils: ['oleo', 'óleo', 'oil', 'azeite', 'canola', 'girassol', 'sunflower', 'coco', 'coconut'],
@@ -112,6 +112,7 @@ export const guessCategorySlug = async (ingredient: string): Promise<string> => 
     const data = await response.json();
     const tags: string[] = data?.products?.[0]?.categories_tags || [];
     const tagStr = tags.join(' ').toLowerCase();
+    if (tagStr.includes('bread')) return 'grains';
     if (tagStr.includes('fruit')) return 'fruits';
     if (tagStr.includes('vegetable')) return 'vegetables';
     if (tagStr.includes('meat') || tagStr.includes('poultry')) return 'proteins';
