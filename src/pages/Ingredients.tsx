@@ -95,6 +95,7 @@ const IngredientsPage = () => {
       localStorage.setItem('selected_ingredients', JSON.stringify(selected));
       toast.success(t('ingredients.sentToRecipe', 'Ingredientes enviados para a tela de receita.'));
       setSelectedItems({});
+      navigate('/');
     } catch (err) {
       console.error(err);
       toast.error(t('common.storageError', 'Erro ao salvar dados localmente.'));

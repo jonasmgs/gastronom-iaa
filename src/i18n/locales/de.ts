@@ -56,7 +56,7 @@ export default {
     ingredientPlaceholder: 'Zutat eingeben...',
     addIngredients: 'Zutaten hinzufügen, um zu beginnen',
     alreadyAdded: 'Zutat bereits hinzugefügt',
-    minIngredients: 'Fügen Sie eine Zutat hinzu oder beschreiben Sie das Gericht',
+    minIngredients: 'Fügen Sie mindestens 1 Zutat hinzu oder beschreiben Sie das Gericht',
     generating: 'Rezept wird erstellt...',
     generate: 'Rezept erstellen',
     errorGenerating: 'Fehler beim Erstellen des Rezepts',
