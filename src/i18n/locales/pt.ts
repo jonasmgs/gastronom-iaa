@@ -65,7 +65,7 @@ export default {
     ingredientPlaceholder: 'Digite um ingrediente...',
     addIngredients: 'Adicione ingredientes para começar',
     alreadyAdded: 'Ingrediente já adicionado',
-    minIngredients: 'Adicione pelo menos 2 ingredientes',
+    minIngredients: 'Adicione um ingrediente ou descreva o prato',
     generating: 'Gerando receita...',
     generate: 'Gerar Receita',
     errorGenerating: 'Erro ao gerar receita',
