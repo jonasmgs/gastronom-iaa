@@ -339,20 +339,20 @@ serve(async (req) => {
 
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
     // Modelo IA (fallback) - leve e rápido
-    const model = "gemini-1.5-flash-latest";
+    const model = "gemini-1.5-flash";
 
     const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${googleAiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
+          system_instruction: { parts: [{ text: systemPrompt }] },
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json",
+            max_output_tokens: 8192,
+            response_mime_type: "application/json",
           },
         }),
       },
@@ -395,6 +395,7 @@ serve(async (req) => {
     });
   }
 });
+
 
 
 
