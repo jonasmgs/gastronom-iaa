@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Leaf, X, Check, ArrowLeft, Wheat, Coffee, Fish, Apple, Candy, Cookie, Beef, Circle } from 'lucide-react';
+import { Plus, Trash2, Leaf, X, Check, ArrowLeft, Wheat, Coffee, Fish, Apple, Candy, Cookie, Beef, Circle, Droplets } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
@@ -117,6 +117,7 @@ const IngredientsPage = () => {
       case 'grains': return <Wheat className="h-4 w-4" />;
       case 'flours': return <Cookie className="h-4 w-4" />;
       case 'leaveners': return <Circle className="h-4 w-4" />;
+      case 'oils': return <Droplets className="h-4 w-4" />;
       case 'sweeteners': return <Candy className="h-4 w-4" />;
       case 'spices': return <Leaf className="h-4 w-4" />;
       case 'dairy': return <Cookie className="h-4 w-4" />;

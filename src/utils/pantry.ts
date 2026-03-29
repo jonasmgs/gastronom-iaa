@@ -16,6 +16,7 @@ export const DEFAULT_CATEGORY_SLUGS = [
   'flours',
   'leaveners',
   'spices',
+  'oils',
   'dairy',
   'fruits',
   'sweeteners',
@@ -27,10 +28,11 @@ export const DEFAULT_CATEGORY_SLUGS = [
 const keywordMap: Record<string, string[]> = {
   proteins: ['frango', 'carne', 'boi', 'bife', 'porco', 'ovo', 'egg', 'chicken', 'beef', 'pork', 'tofu', 'tempeh', 'lamb', 'steak'],
   vegetables: ['alface', 'couve', 'brocolis', 'cenoura', 'tomate', 'pepino', 'salad', 'lettuce', 'kale', 'broccoli', 'carrot', 'tomato', 'cucumber', 'spinach'],
-  fruits: ['maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'banana', 'orange', 'grape', 'mango', 'berry', 'strawberry'],
+  fruits: ['maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'orange', 'grape', 'mango', 'berry', 'strawberry', 'lemon', 'lime'],
   grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley', 'cereal'],
-  flours: ['farinha', 'flour', 'trigo', 'rice flour', 'almond flour', 'oat flour', 'corn starch', 'maizena'],
-  leaveners: ['fermento', 'baking powder', 'baking soda', 'yeast', 'fermenting', 'cream of tartar'],
+  flours: ['farinha', 'flour', 'trigo', 'maizena', 'starch'],
+  leaveners: ['fermento', 'baking', 'yeast', 'bicarbonato', 'soda'],
+  oils: ['oleo', 'óleo', 'oil', 'azeite', 'canola', 'girassol', 'sunflower', 'coco', 'coconut'],
   sweeteners: ['acucar', 'açúcar', 'sugar', 'mel', 'honey', 'stevia', 'adoçante', 'xylitol', 'eritritol', 'erythritol', 'agave', 'maple'],
   spices: ['pimenta', 'sal', 'ervas', 'oregano', 'alho', 'onion', 'garlic', 'pepper', 'spice', 'herb', 'paprika', 'curry'],
   dairy: ['leite', 'queijo', 'manteiga', 'manteiga sem sal', 'cream', 'milk', 'cheese', 'butter', 'yogurt'],
@@ -48,13 +50,14 @@ export const slugify = (text: string) =>
     .replace(/^-+|-+$/g, '') || 'others';
 
 const normalizeIngredientName = (raw: string) => {
-  const cleaned = raw.split('(')[0].replace(/[.,]+$/,'').trim();
-  const display = cleaned || raw.trim();
-  const normalized = display
+  const base = raw.split('(')[0].split(',')[0].trim();
+  const firstWord = base.split(/\s+/)[0] || base;
+  const display = base || raw.trim();
+  const normalized = firstWord
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim();
   return { display, normalized };
 };
@@ -70,8 +73,12 @@ export const loadCategories = (): PantryCategory[] => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = migrate(JSON.parse(raw));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      return parsed;
+      const unique: Record<string, PantryCategory> = {};
+      parsed.forEach((c) => { unique[c.slug] = unique[c.slug] || c; });
+      DEFAULT_CATEGORY_SLUGS.forEach((slug) => { if (!unique[slug]) unique[slug] = { id: generateId(), slug, items: [] }; });
+      const arr = Object.values(unique);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+      return arr;
     }
     const seed = DEFAULT_CATEGORY_SLUGS.map((slug) => ({
       id: generateId(),
