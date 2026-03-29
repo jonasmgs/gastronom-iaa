@@ -338,8 +338,8 @@ serve(async (req) => {
     }
 
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
-    // Modelo IA (fallback) - voltando para a escolha oficial escolhida para uso manual
-    const model = "gemini-2.0-flash";
+    // Modelo IA (fallback) - O modelo oficial disponível no seu painel AI Studio
+    const model = "gemini-2.5-flash-lite";
 
     const aiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
