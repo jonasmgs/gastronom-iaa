@@ -322,8 +322,8 @@ serve(async (req) => {
     const mode = body.mode === "transform" ? "transform" : "generate";
     const description = body.description ? sanitizeInput(body.description as string) : null;
 
-    if (mode !== "transform" && ingredients.length < 2) {
-      return new Response(JSON.stringify({ error: "Envie pelo menos 2 ingredientes" }), {
+    if (mode !== "transform" && ingredients.length === 0 && !description) {
+      return new Response(JSON.stringify({ error: "Envie pelo menos 1 ingrediente ou uma descricao do prato" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -338,7 +338,8 @@ serve(async (req) => {
     }
 
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
-    const model = "gemini-1.5-flash";
+    // Modelo IA (fallback) - leve e rápido
+    const model = "gemini-2.5-flash-lite";
 
     const aiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
