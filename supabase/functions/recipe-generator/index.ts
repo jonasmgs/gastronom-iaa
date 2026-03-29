@@ -91,7 +91,7 @@ function parseJsonPayload(raw: string) {
   return JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
 }
 
-function normalizeIngredients(value: unknown): Ingredient[] {
+function normalizeIngredients(value: unknown, isImperial: boolean): Ingredient[] {
   if (!Array.isArray(value)) return [];
 
   return value
@@ -100,52 +100,49 @@ function normalizeIngredients(value: unknown): Ingredient[] {
       let quantity = String(record.quantity ?? "").trim().toLowerCase();
       let tip = String(record.tip ?? "").trim();
 
-      // Programmatic cleanup for non-metric units (aggressive)
-      const forbiddenUnits = [
-        "unidade", "unidades", " un", "un ", "un.", "fatia", "fatias", 
-        "dente", "dentes", "xícara", "xícaras", "colher", "colheres", 
-        "pitada", "maço", "maços", "unid", "meia", "meio", "inteiro", "inteira"
-      ];
+      // For Metric users, we still want to enforce g/kg/ml to avoid ambiguous 'units'
+      if (!isImperial) {
+        const forbiddenMetrics = [
+          "unidade", "unidades", " un", "un ", "un.", "fatia", "fatias", 
+          "dente", "dentes", "xícara", "xícaras", "colher", "colheres", 
+          "pitada", "maço", "maços", "unid"
+        ];
 
-      const hasForbidden = forbiddenUnits.some(unit => quantity.includes(unit)) || 
-                          (!quantity.includes("g") && !quantity.includes("kg") && 
-                           !quantity.includes("ml") && !quantity.includes("l"));
-      
-      if (hasForbidden) {
-        if (!tip) tip = `Original: ${quantity}`;
+        const hasForbidden = forbiddenMetrics.some(unit => quantity.includes(unit)) || 
+                            (!quantity.includes("g") && !quantity.includes("kg") && 
+                             !quantity.includes("ml") && !quantity.includes("l"));
         
-        // Handle fractions like 1/2 or 1/4
-        let num = 0;
-        const fractionMatch = quantity.match(/(\d+)\/(\d+)/);
-        if (fractionMatch) {
-          num = parseInt(fractionMatch[1]) / parseInt(fractionMatch[2]);
-        } else {
-          const numMatch = quantity.match(/(\d+([.,]\d+)?)/);
-          if (numMatch) {
-            num = parseFloat(numMatch[1].replace(',', '.'));
-          } else if (quantity.includes("meia") || quantity.includes("meio") || quantity.includes("metade")) {
-            num = 0.5;
+        if (hasForbidden) {
+          if (!tip) tip = `Original: ${quantity}`;
+          
+          let num = 0;
+          const fractionMatch = quantity.match(/(\d+)\/(\d+)/);
+          if (fractionMatch) {
+            num = parseInt(fractionMatch[1]) / parseInt(fractionMatch[2]);
           } else {
-            num = 1;
+            const numMatch = quantity.match(/(\d+([.,]\d+)?)/);
+            if (numMatch) {
+              num = parseFloat(numMatch[1].replace(',', '.'));
+            } else if (quantity.includes("meia") || quantity.includes("meio") || quantity.includes("metade")) {
+              num = 0.5;
+            } else {
+              num = 1;
+            }
           }
-        }
 
-        // Hard conversion map to ensure metric units
-        const nameLower = String(record.name ?? "").toLowerCase();
-        if (nameLower.includes("ovo") || quantity.includes("ovo")) quantity = `${Math.round(num * 50)}g`;
-        else if (nameLower.includes("alho") || quantity.includes("alho")) quantity = `${Math.round(num * 5)}g`;
-        else if (nameLower.includes("cebola") || quantity.includes("cebola")) quantity = `${Math.round(num * 150)}g`;
-        else if (nameLower.includes("tomate") || quantity.includes("tomate")) quantity = `${Math.round(num * 120)}g`;
-        else if (quantity.includes("xícara") || quantity.includes("copo") || quantity.includes("xicara")) quantity = `${Math.round(num * 200)}g`;
-        else if (quantity.includes("colher de sopa") || quantity.includes("colher (sopa)")) quantity = `${Math.round(num * 15)}g`;
-        else if (quantity.includes("colher de chá") || quantity.includes("colher (chá)")) quantity = `${Math.round(num * 5)}g`;
-        else if (quantity.includes("fatia")) quantity = `${Math.round(num * 30)}g`;
-        else if (quantity.includes("pitada")) quantity = `1g`;
-        else if (quantity.includes("maço") || quantity.includes("maco")) quantity = `100g`;
-        else if (nameLower.includes("limão") || nameLower.includes("limao")) quantity = `${Math.round(num * 40)}ml`;
-        else {
-          // If we don't know the density, we assume it's roughly 100g/unit
-          quantity = `${Math.round(num * 100)}g`;
+          const nameLower = String(record.name ?? "").toLowerCase();
+          if (nameLower.includes("ovo") || quantity.includes("ovo")) quantity = `${Math.round(num * 50)}g`;
+          else if (nameLower.includes("alho") || quantity.includes("alho")) quantity = `${Math.round(num * 5)}g`;
+          else if (nameLower.includes("cebola") || quantity.includes("cebola")) quantity = `${Math.round(num * 150)}g`;
+          else if (nameLower.includes("tomate") || quantity.includes("tomate")) quantity = `${Math.round(num * 120)}g`;
+          else if (quantity.includes("xícara") || quantity.includes("copo") || quantity.includes("xicara")) quantity = `${Math.round(num * 200)}g`;
+          else if (quantity.includes("colher de sopa") || quantity.includes("colher (sopa)")) quantity = `${Math.round(num * 15)}g`;
+          else if (quantity.includes("colher de chá") || quantity.includes("colher (chá)")) quantity = `${Math.round(num * 5)}g`;
+          else if (quantity.includes("fatia")) quantity = `${Math.round(num * 30)}g`;
+          else if (quantity.includes("pitada")) quantity = `1g`;
+          else if (quantity.includes("maço") || quantity.includes("maco")) quantity = `100g`;
+          else if (nameLower.includes("limão") || nameLower.includes("limao")) quantity = `${Math.round(num * 40)}ml`;
+          else quantity = `${Math.round(num * 100)}g`;
         }
       }
 
@@ -176,8 +173,8 @@ function normalizeSteps(value: unknown): Step[] {
     .filter((item) => item.description.length > 0);
 }
 
-function normalizeRecipe(recipe: Record<string, unknown>) {
-  const ingredients = normalizeIngredients(recipe.ingredients);
+function normalizeRecipe(recipe: Record<string, unknown>, isImperial: boolean) {
+  const ingredients = normalizeIngredients(recipe.ingredients, isImperial);
   const steps = normalizeSteps(recipe.steps);
 
   if (ingredients.length === 0 || steps.length === 0) {
@@ -212,6 +209,10 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   const promptContext = typeof body.prompt_context === "string" ? body.prompt_context.trim().slice(0, 6000) : "";
   const filters = typeof body.filters === "object" && body.filters ? body.filters as Record<string, unknown> : {};
   const existingRecipe = typeof body.existing_recipe === "string" ? body.existing_recipe.trim().slice(0, 5000) : "";
+  
+  // New dynamic localization parameters
+  const userLanguage = typeof body.language === "string" ? body.language : "pt";
+  const userRegion = typeof body.region === "string" ? body.region : "UTC";
 
   const activeFilters = [
     filters.vegan ? "VEGANO" : null,
@@ -240,18 +241,31 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
   "substitutions_made": "string"
 }`;
 
+  // Determine unit system based on region/language
+  // Simple check: US, Liberia, Myanmar (and generic 'en' region check)
+  const isImperial = userRegion.includes("America/New_York") || 
+                     userRegion.includes("America/Chicago") || 
+                     userRegion.includes("America/Denver") || 
+                     userRegion.includes("America/Los_Angeles") ||
+                     userRegion.includes("America/Phoenix") ||
+                     userRegion.includes("US") ||
+                     (userLanguage === "en" && (userRegion.includes("US") || userRegion === "UTC"));
+
+  const unitInstruction = isImperial 
+    ? "UNIDADES CRITICAS: Use o sistema Imperial dos EUA (lbs, oz, fl oz, cups, tbsp, tsp). Converta tudo para este sistema."
+    : "UNIDADES CRITICAS: Use o sistema Metrico (g, kg, ml, l). Proibido xicaras/colheres como unidade principal; use-as apenas no campo 'tip' como equivalencia.";
+
   const systemPrompt = [
-    "Voce e um chef profissional e especialista em gastronomia com conhecimento tecnico profundo sobre estrutura de receitas.",
-    "Responda sempre em portugues do Brasil e retorne apenas JSON valido conforme o schema pedido.",
+    `Voce e um chef profissional e especialista em gastronomia. Responda no idioma: ${userLanguage}.`,
+    "Retorne apenas JSON valido conforme o schema pedido.",
     "RESTRICOES ALIMENTARES -- PRIORIDADE MAXIMA: Nunca use ingredientes proibidos. Sempre aplique substitutos obrigatorios (vegano/gluten/lactose) e combine restricoes quando necessario.",
-    "SE VEGANO: Proibido carne, frango, peixe, ovos, leite, manteiga, mel, gelatina animal, creme de leite. Substitua por leite vegetal, manteiga vegana/oleo de coco, ovos -> linhaca+agua ou aquafaba, mel -> agave/maple, gelatina -> agar-agar, creme de leite -> creme de coco.",
-    "SE SEM GLUTEN: Proibido trigo, aveia comum, cevada, centeio, malte. Use farinhas de arroz, batata, amido de milho, amendoa, coco, grao de bico ou mix sem gluten. Verifique molhos industrializados.",
-    "SE SEM LACTOSE: Proibido leite, manteiga, queijo, creme de leite, iogurte, requeijao. Use leite vegetal, manteiga/ghee sem lactose, queijo/creme sem lactose ou creme de coco.",
-    "CATEGORIAS E ESTRUTURA: Massas doces precisam farinha+gordura+liquido+fermento+adocante+proteina (ou substitutos veganos). Paes/massas salgadas: farinha+liquido morno+fermento+sal+gordura; fermento biologico precisa acucar. Molhos: gordura+aromatico+liquido+temperos; molhos cremosos precisam espessante. Carnes: sempre sal+pimenta+aromatico e ponto adequado; se vegano use tofu/tempeh/grao de bico/lentilha/cogumelos/PVT. Sobremesas geladas: inclua agente de textura (gelatina ou agar-agar; amido; creme de leite ou creme de coco).",
-    "PASSOS ANTES DE GERAR: (1) Leia restricoes; (2) identifique categoria; (3) garanta componentes estruturais; (4) remova proibidos; (5) substitua automaticamente; (6) cheque proporcoes coerentes; (7) so entao gere.",
-    "FORMATO: nome da receita + restricoes atendidas; tempos; porcoes; ingredientes completos com medidas brasileiras; passo a passo detalhado; dica do chef; info nutricional por porcao.",
-    "UNIDADES CRITICAS: quantity apenas g, kg, ml ou l. PROIBIDO unidade/un/fatia/dente/xicara/colher/pitada/maco. Converta tudo e use 'tip' para equivalencias.",
-    "Todos os ingredientes citados no preparo devem estar na lista; preparo com minimo 4 passos; informe calorias realistas e resumo nutricional por porcao.",
+    "SE VEGANO: Proibido carne, frango, peixe, ovos, leite, manteiga, mel, gelatina animal, creme de leite. Use substitutos vegetais equivalentes.",
+    "SE SEM GLUTEN: Proibido trigo, aveia comum, cevada, centeio, malte. Use farinhas e mix sem gluten.",
+    "SE SEM LACTOSE: Proibido leite, queijo, manteiga e derivados animais com lactose. Use versoes sem lactose ou de origem vegetal.",
+    "CATEGORIAS E ESTRUTURA: Garanta que massas, molhos e carnes sigam proporcoes culinarias corretas.",
+    "FORMATO: Nome da receita + restricoes atendidas; tempos; porcoes; ingredientes com quantidades precisas; passo a passo detalhado; dica do chef; info nutricional por porcao.",
+    unitInstruction,
+    "Todos os ingredientes citados no preparo devem estar na lista; preparo com minimo 4 passos; informe calorias realistas.",
   ].join(" ");
 
   const baseUserPrompt = [
@@ -263,7 +277,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     activeFilters ? `Filtros OBRIGATORIOS: ${activeFilters}.` : "",
     promptContext || "",
     `Schema JSON: ${schema}`,
-    "ATENCAO: Converta TUDO para g ou ml; proibido xicara/colher/unidade/fatia/pitada.",
+    `ATENCAO: Use o sistema de medidas ${isImperial ? "Imperial (EUA)" : "Metrico"}.`,
   ].filter(Boolean).join("\n\n");
 
   if (mode === "transform") {
@@ -282,7 +296,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     userPrompt: [
       "Crie uma receita completa usando os ingredientes abaixo.",
       `Ingredientes: ${ingredients.join(", ")}.`,
-      description ? `Descricao do prato desejado (Atenção: interprete palavras sem acento em Português-BR. Ex: "pao" significa pão/bread, não Kung Pao): ${description}.` : "",
+      description ? `Descricao do prato desejado (Atenção: interprete palavras sem acento em Português-BR. Ex: "pao" significa pão/bread): ${description}.` : "",
       baseUserPrompt,
     ].filter(Boolean).join("\n\n"),
   };
@@ -380,8 +394,18 @@ serve(async (req) => {
       });
     }
 
+    const userLanguage = typeof body.language === "string" ? body.language : "pt";
+    const userRegion = typeof body.region === "string" ? body.region : "UTC";
+    const isImperial = userRegion.includes("America/New_York") || 
+                       userRegion.includes("America/Chicago") || 
+                       userRegion.includes("America/Denver") || 
+                       userRegion.includes("America/Los_Angeles") ||
+                       userRegion.includes("America/Phoenix") ||
+                       userRegion.includes("US") ||
+                       (userLanguage === "en" && (userRegion.includes("US") || userRegion === "UTC"));
+
     const parsed = parseJsonPayload(rawText);
-    const normalized = normalizeRecipe(parsed);
+    const normalized = normalizeRecipe(parsed, isImperial);
 
     return new Response(JSON.stringify(normalized), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

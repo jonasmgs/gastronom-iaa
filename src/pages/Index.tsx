@@ -30,7 +30,7 @@ import { addIngredientsAuto } from '@/utils/pantry';
 const bgImages = [bgIngredients, bgIngredients2, bgIngredients3, bgIngredients4, bgUtensils];
 
 const Index = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle();
   const { user, session } = useAuth();
   const { name } = useProfile();
@@ -177,6 +177,8 @@ Receita base: ${JSON.stringify(existing)}
           recipe_name: recipeName,
           prompt_context: promptContext,
           restrictions_text: restrictionsText,
+          language: i18n.language || 'pt',
+          region: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         },
         token: session?.access_token,
       });
