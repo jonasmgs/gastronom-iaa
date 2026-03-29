@@ -347,12 +347,9 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: `INSTRUCOES DO CHEF (SISTEMA):\n${systemPrompt}\n\n---\n\nPEDIDO DO USUARIO:\n${userPrompt}` }] }],
           generationConfig: {
             temperature: 0.7,
-            max_output_tokens: 8192,
-            response_mime_type: "application/json",
           },
         }),
       },
