@@ -13,9 +13,11 @@ export const DEFAULT_CATEGORY_SLUGS = [
   'proteins',
   'vegetables',
   'grains',
+  'flours',
   'spices',
   'dairy',
   'fruits',
+  'sweeteners',
   'seafood',
   'beverages',
   'others',
@@ -25,7 +27,9 @@ const keywordMap: Record<string, string[]> = {
   proteins: ['frango', 'carne', 'boi', 'bife', 'porco', 'ovo', 'egg', 'chicken', 'beef', 'pork', 'tofu', 'tempeh', 'lamb', 'steak'],
   vegetables: ['alface', 'couve', 'brocolis', 'cenoura', 'tomate', 'pepino', 'salad', 'lettuce', 'kale', 'broccoli', 'carrot', 'tomato', 'cucumber', 'spinach'],
   fruits: ['maca', 'banana', 'laranja', 'pera', 'uva', 'manga', 'apple', 'banana', 'orange', 'grape', 'mango', 'berry', 'strawberry'],
-  grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley'],
+  grains: ['arroz', 'feijao', 'lentilha', 'grao', 'quinoa', 'oats', 'rice', 'bean', 'lentil', 'oat', 'quinoa', 'barley', 'cereal'],
+  flours: ['farinha', 'flour', 'trigo', 'rice flour', 'almond flour', 'oat flour', 'corn starch', 'maizena'],
+  sweeteners: ['acucar', 'açúcar', 'sugar', 'mel', 'honey', 'stevia', 'adoçante', 'xylitol', 'eritritol', 'erythritol', 'agave', 'maple'],
   spices: ['pimenta', 'sal', 'ervas', 'oregano', 'alho', 'onion', 'garlic', 'pepper', 'spice', 'herb', 'paprika', 'curry'],
   dairy: ['leite', 'queijo', 'manteiga', 'cream', 'milk', 'cheese', 'butter', 'yogurt'],
   seafood: ['peixe', 'camarao', 'tilapia', 'fish', 'shrimp', 'salmon', 'tuna'],
@@ -88,6 +92,8 @@ export const guessCategorySlug = async (ingredient: string): Promise<string> => 
     if (tagStr.includes('fruit')) return 'fruits';
     if (tagStr.includes('vegetable')) return 'vegetables';
     if (tagStr.includes('meat') || tagStr.includes('poultry')) return 'proteins';
+    if (tagStr.includes('flour') || tagStr.includes('starch')) return 'flours';
+    if (tagStr.includes('sugar') || tagStr.includes('sweetener') || tagStr.includes('honey')) return 'sweeteners';
     if (tagStr.includes('fish') || tagStr.includes('seafood')) return 'seafood';
     if (tagStr.includes('dairy')) return 'dairy';
     if (tagStr.includes('cereal') || tagStr.includes('grain')) return 'grains';
