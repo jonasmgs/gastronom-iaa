@@ -1,0 +1,9 @@
+{
+	"appId": "com.gastronom.ia",
+	"appName": "Gastronom.IA",
+	"webDir": "dist",
+	"bundledWebRuntime": false,
+	"packageClassList": [
+		"CAPBrowserPlugin"
+	]
+}
