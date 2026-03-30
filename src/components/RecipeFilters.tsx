@@ -88,6 +88,28 @@ const RecipeFilters = ({
         </div>
       )}
 
+      {/* Dish type */}
+      <section aria-label={t('home.dishType')}>
+        <p className="text-xs font-bold text-foreground/80 mb-2 ml-1">{t('home.dishType')}</p>
+        <div className="flex flex-wrap gap-2" role="group">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => onCategoryChange(category === cat.id ? null : cat.id)}
+              aria-pressed={category === cat.id}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
+                category === cat.id
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-card/80 backdrop-blur-sm border border-input text-muted-foreground'
+              }`}
+            >
+              <cat.icon className="h-3.5 w-3.5" />
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Dietary Restrictions */}
       <section aria-label="Restrições Alimentares">
         <p className="text-xs font-bold text-foreground/80 mb-2 ml-1">Restrições Alimentares</p>
@@ -136,6 +158,28 @@ const RecipeFilters = ({
             <MilkOff className="h-3.5 w-3.5" />
             Sem Lactose
           </button>
+        </div>
+      </section>
+
+      {/* Complexity */}
+      <section aria-label={t('home.complexity')}>
+        <p className="text-xs font-bold text-foreground/80 mb-2 ml-1">{t('home.complexity')}</p>
+        <div className="flex flex-wrap gap-2" role="group">
+          {complexities.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => onComplexityChange(complexity === opt.id ? null : opt.id)}
+              aria-pressed={complexity === opt.id}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
+                complexity === opt.id
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-card/80 backdrop-blur-sm border border-input text-muted-foreground'
+              }`}
+            >
+              <opt.icon className="h-3.5 w-3.5" />
+              {opt.label}
+            </button>
+          ))}
         </div>
       </section>
 
