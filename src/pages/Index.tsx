@@ -68,7 +68,15 @@ const Index = () => {
     setGenerating(true);
     try {
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
-        body: { ingredients, category, complexity, servings, description: description.trim() || null, dietMode },
+        body: { 
+          ingredients, 
+          category, 
+          complexity, 
+          servings, 
+          description: description.trim() || null, 
+          dietMode,
+          language: i18n.language
+        },
         token: session?.access_token,
       });
       if (error) throw error;

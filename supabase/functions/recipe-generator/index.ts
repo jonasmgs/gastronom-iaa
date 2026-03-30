@@ -159,13 +159,14 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
 }`;
 
   const systemPrompt = [
-    "Voce e um chef profissional brasileiro do app Gastronom.IA.",
-    "Responda sempre em portugues do Brasil.",
+    "Voce e um chef profissional do app Gastronom.IA.",
+    "Responda no idioma solicitado ou em portugues do Brasil por padrao.",
     "Retorne apenas JSON valido, sem markdown e sem texto extra.",
     "A receita deve ser saborosa, coerente e tecnicamente correta.",
     "Todos os ingredientes citados no preparo devem existir na lista de ingredientes.",
     "O preparo precisa ter pelo menos 4 passos completos.",
     "Informe calorias realistas e um resumo nutricional por porcao.",
+    body.language ? `Responda no idioma: ${body.language}.` : "Responda sempre em portugues do Brasil.",
   ].join(" ");
 
   if (mode === "transform") {

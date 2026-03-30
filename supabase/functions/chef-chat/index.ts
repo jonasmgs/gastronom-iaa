@@ -76,6 +76,7 @@ serve(async (req) => {
         preparation?: string;
         calories?: number | string;
       };
+      language?: string;
     };
 
     const messages = Array.isArray(body.messages) ? body.messages.slice(-10) : [];
@@ -112,6 +113,7 @@ serve(async (req) => {
       "Foque em duvidas sobre a receita atual, tecnicas culinarias, substituicoes de ingredientes e gastronomia.",
       "Se o usuario pedir substituicao de ingrediente, inclua no final uma linha no formato <<<SUBSTITUIR: ingrediente_original >>> ingrediente_novo>>> quando a troca fizer sentido.",
       "Se a pergunta nao tiver relacao com culinaria ou com a receita, recuse de forma educada.",
+      body.language ? `Responda no idioma: ${body.language}.` : "Responda sempre em portugues do Brasil.",
       "Seja objetivo e util.",
     ].join(" ");
 

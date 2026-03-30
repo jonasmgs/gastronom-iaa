@@ -20,7 +20,7 @@ interface DietaryFilters {
 }
 
 const EditRecipe = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t('edit.title').replace(' ✨', ''));
   const { user, session } = useAuth();
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ const EditRecipe = () => {
     setTransforming(true);
     try {
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
-        body: { mode: 'transform', existing_recipe: recipeText, filters },
+        body: { mode: 'transform', existing_recipe: recipeText, filters, language: i18n.language },
         token: session?.access_token,
       });
       if (error) throw error;

@@ -33,12 +33,14 @@ async function streamChat({
   recipe_context,
   onDelta,
   onDone,
+  language,
 }: {
   messages: Msg[];
   token: string;
   recipe_context: RecipeContext;
   onDelta: (text: string) => void;
   onDone: () => void;
+  language?: string;
 }) {
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
@@ -47,7 +49,7 @@ async function streamChat({
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       'x-user-jwt': token,
     },
-    body: JSON.stringify({ messages, recipe_context }),
+    body: JSON.stringify({ messages, recipe_context, language }),
   });
 
   if (!resp.ok) {
@@ -107,7 +109,7 @@ async function streamChat({
 }
 
 const RecipeChat = ({ recipe, recipeId, rawIngredients, open, onClose, onRecipeUpdated }: RecipeChatProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -150,6 +152,7 @@ const RecipeChat = ({ recipe, recipeId, rawIngredients, open, onClose, onRecipeU
         token: session.access_token,
         recipe_context: recipe,
         onDelta: (chunk) => upsertAssistant(chunk),
+        language: i18n.language,
         onDone: async () => {
           setIsLoading(false);
           // Check for substitution marker in the final response
