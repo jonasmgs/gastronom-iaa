@@ -39,7 +39,12 @@ const Index = () => {
   const [currentBg, setCurrentBg] = useState(0);
   const [servings, setServings] = useState<number>(2);
   const [showServingsModal, setShowServingsModal] = useState(false);
-  const [dietMode, setDietMode] = useState(false);
+  const [dietaryFilters, setDietaryFilters] = useState({
+    vegan: false,
+    vegetarian: false,
+    glutenFree: false,
+    lactoseFree: false
+  });
   const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
@@ -74,7 +79,7 @@ const Index = () => {
           complexity, 
           servings, 
           description: description.trim() || null, 
-          dietMode,
+          filters: dietaryFilters,
           language: i18n.language
         },
         token: session?.access_token,
@@ -173,8 +178,8 @@ const Index = () => {
             description={description}
             onDescriptionChange={setDescription}
             showDescription
-            dietMode={dietMode}
-            onDietModeChange={setDietMode}
+            dietaryFilters={dietaryFilters}
+            onDietaryFiltersChange={setDietaryFilters}
           />
         </div>
 

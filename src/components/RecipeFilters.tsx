@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Salad, Cake, Beef, Sandwich, Soup, Droplets, Zap, ChefHat, Crown, Leaf } from 'lucide-react';
+import { Plus, X, Salad, Cake, Beef, Sandwich, Soup, Droplets, Zap, ChefHat, Crown, Leaf, WheatOff, MilkOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,8 +14,18 @@ interface RecipeFiltersProps {
   description?: string;
   onDescriptionChange?: (val: string) => void;
   showDescription?: boolean;
-  dietMode?: boolean;
-  onDietModeChange?: (val: boolean) => void;
+  dietaryFilters: {
+    vegan: boolean;
+    vegetarian: boolean;
+    glutenFree: boolean;
+    lactoseFree: boolean;
+  };
+  onDietaryFiltersChange: (val: {
+    vegan: boolean;
+    vegetarian: boolean;
+    glutenFree: boolean;
+    lactoseFree: boolean;
+  }) => void;
 }
 
 const RecipeFilters = ({
@@ -24,7 +34,7 @@ const RecipeFilters = ({
   ingredients, onIngredientsChange,
   description = '', onDescriptionChange,
   showDescription = false,
-  dietMode = false, onDietModeChange,
+  dietaryFilters, onDietaryFiltersChange,
 }: RecipeFiltersProps) => {
   const { t } = useTranslation();
   const [ingredientInput, setIngredientInput] = useState('');
@@ -55,88 +65,79 @@ const RecipeFilters = ({
     setIngredientInput('');
   };
 
+  const toggleFilter = (key: keyof typeof dietaryFilters) => {
+    onDietaryFiltersChange({
+      ...dietaryFilters,
+      [key]: !dietaryFilters[key]
+    });
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Description */}
       {showDescription && onDescriptionChange && (
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('nutrition.descriptionLabel')}</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground/80 ml-1">{t('nutrition.descriptionLabel')}</label>
           <input
             type="text"
             value={description}
             onChange={e => onDescriptionChange(e.target.value)}
             placeholder={t('nutrition.descriptionPlaceholder')}
-            className="w-full rounded-xl border border-input bg-card/90 backdrop-blur-sm px-3 py-2.5 text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-2xl border border-input bg-card/50 backdrop-blur-sm px-4 py-3 text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
           />
         </div>
       )}
 
-      {/* Dish type */}
-      <section aria-label={t('home.dishType')}>
-        <p className="text-xs font-medium text-muted-foreground mb-2">{t('home.dishType')}</p>
-        <div className="flex flex-wrap gap-2" role="group">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => onCategoryChange(category === cat.id ? null : cat.id)}
-              aria-pressed={category === cat.id}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
-                category === cat.id
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'bg-card/80 backdrop-blur-sm border border-input text-muted-foreground'
-              }`}
-            >
-              <cat.icon className="h-3.5 w-3.5" />
-              {cat.label}
-            </button>
-          ))}
+      {/* Dietary Restrictions */}
+      <section aria-label="Restrições Alimentares">
+        <p className="text-xs font-bold text-foreground/80 mb-2 ml-1">Restrições Alimentares</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => toggleFilter('vegetarian')}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all border ${
+              dietaryFilters.vegetarian 
+                ? 'bg-green-600 border-green-600 text-white shadow-md' 
+                : 'bg-card/50 border-input text-muted-foreground'
+            }`}
+          >
+            <Leaf className="h-3.5 w-3.5" />
+            Vegetariana
+          </button>
+          <button
+            onClick={() => toggleFilter('vegan')}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all border ${
+              dietaryFilters.vegan 
+                ? 'bg-green-700 border-green-700 text-white shadow-md' 
+                : 'bg-card/50 border-input text-muted-foreground'
+            }`}
+          >
+            <Leaf className="h-3.5 w-3.5" />
+            Vegana
+          </button>
+          <button
+            onClick={() => toggleFilter('glutenFree')}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all border ${
+              dietaryFilters.glutenFree 
+                ? 'bg-amber-600 border-amber-600 text-white shadow-md' 
+                : 'bg-card/50 border-input text-muted-foreground'
+            }`}
+          >
+            <WheatOff className="h-3.5 w-3.5" />
+            Sem Glúten
+          </button>
+          <button
+            onClick={() => toggleFilter('lactoseFree')}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all border ${
+              dietaryFilters.lactoseFree 
+                ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                : 'bg-card/50 border-input text-muted-foreground'
+            }`}
+          >
+            <MilkOff className="h-3.5 w-3.5" />
+            Sem Lactose
+          </button>
         </div>
       </section>
-
-      {/* Complexity */}
-      <section aria-label={t('home.complexity')}>
-        <p className="text-xs font-medium text-muted-foreground mb-2">{t('home.complexity')}</p>
-        <div className="flex flex-wrap gap-2" role="group">
-          {complexities.map(opt => (
-            <button
-              key={opt.id}
-              onClick={() => onComplexityChange(complexity === opt.id ? null : opt.id)}
-              aria-pressed={complexity === opt.id}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
-                complexity === opt.id
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'bg-card/80 backdrop-blur-sm border border-input text-muted-foreground'
-              }`}
-            >
-              <opt.icon className="h-3.5 w-3.5" />
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Diet Mode */}
-      {onDietModeChange && (
-        <section aria-label={t('home.dietMode')}>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onDietModeChange(!dietMode)}
-              aria-pressed={dietMode}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
-                dietMode
-                  ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-card/80 backdrop-blur-sm border border-input text-muted-foreground'
-              }`}
-            >
-              <Leaf className="h-3.5 w-3.5" />
-              {t('home.dietMode')}
-            </button>
-            {dietMode && (
-              <span className="text-xs text-muted-foreground">{t('home.dietModeHint')}</span>
-            )}
-          </div>
-        </section>
-      )}
 
       {/* Ingredients */}
       <div>
