@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "github-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_GITHUB_TOKEN>"
+      },
+      "disabled": false
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://yonfwhcriumpqevsiuoz.supabase.co",
+        "SUPABASE_PROJECT_REF": "yonfwhcriumpqevsiuoz",
+        "SUPABASE_ACCESS_TOKEN": "<YOUR_SUPABASE_ACCESS_TOKEN>",
+        "SUPABASE_DB_PASSWORD": "<YOUR_SUPABASE_DB_PASSWORD>"
+      },
+      "disabled": false
+    }
+  }
+}
