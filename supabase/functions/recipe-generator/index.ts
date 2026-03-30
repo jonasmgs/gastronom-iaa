@@ -120,7 +120,44 @@ function normalizeRecipe(recipe: Record<string, unknown>) {
   };
 }
 
-function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
+async function fetchExternalRecipe(ingredients: string[]) {
+  if (ingredients.length === 0) return null;
+  
+  try {
+    // Tenta buscar pelo primeiro ingrediente principal
+    const mainIng = ingredients[0];
+    const searchRes = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(mainIng)}`);
+    if (!searchRes.ok) return null;
+    
+    const searchData = await searchRes.json();
+    const meal = searchData.meals?.[0];
+    if (!meal) return null;
+
+    // Busca os detalhes da receita encontrada
+    const detailsRes = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`);
+    if (!detailsRes.ok) return null;
+    
+    const detailsData = await detailsRes.json();
+    const fullMeal = detailsData.meals?.[0];
+    if (!fullMeal) return null;
+
+    // Constrói um texto base para ajudar a IA
+    let recipeText = `Base de Receita Externa (TheMealDB):\nNome: ${fullMeal.strMeal}\nCategoria: ${fullMeal.strCategory}\nInstruções: ${fullMeal.strInstructions}\n\nIngredientes base: `;
+    for (let i = 1; i <= 20; i++) {
+       const name = fullMeal[`strIngredient${i}`];
+       const qty = fullMeal[`strMeasure${i}`];
+       if (name && name.trim()) {
+         recipeText += `${name} (${qty}), `;
+       }
+    }
+    return recipeText;
+  } catch (e) {
+    console.error("Erro ao buscar API externa:", e);
+    return null;
+  }
+}
+
+function buildPrompt(body: Record<string, unknown>, ingredients: string[], externalBase: string | null) {
   const mode = body.mode === "transform" ? "transform" : "generate";
   const servings = typeof body.servings === "number" ? Math.min(Math.max(body.servings, 1), 20) : 2;
   const description = typeof body.description === "string" ? body.description.trim().slice(0, 200) : "";
@@ -134,6 +171,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
 
   const activeFilters = [
     filters.vegan ? "vegana" : null,
+    filters.vegetarian ? "vegetariana" : null,
     filters.glutenFree ? "sem gluten" : null,
     filters.lactoseFree ? "sem lactose" : null,
     body.dietMode === true ? "baixa caloria" : null,
@@ -159,14 +197,14 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
 }`;
 
   const systemPrompt = [
-    "Voce e um chef profissional do app Gastronom.IA.",
-    "Responda no idioma solicitado ou em portugues do Brasil por padrao.",
+    "Voce e um chef profissional internacional do app Gastronom.IA.",
+    body.language ? `VOCE DEVE RESPONDER O JSON INTEIRO EXCLUSIVAMENTE NO IDIOMA: ${body.language}.` : "Responda sempre em portugues do Brasil.",
+    "Traduza nomes de ingredientes, instrucoes e dicas caso receba uma base em outro idioma.",
     "Retorne apenas JSON valido, sem markdown e sem texto extra.",
     "A receita deve ser saborosa, coerente e tecnicamente correta.",
     "Todos os ingredientes citados no preparo devem existir na lista de ingredientes.",
     "O preparo precisa ter pelo menos 4 passos completos.",
     "Informe calorias realistas e um resumo nutricional por porcao.",
-    body.language ? `Responda no idioma: ${body.language}.` : "Responda sempre em portugues do Brasil.",
   ].join(" ");
 
   if (mode === "transform") {
@@ -175,6 +213,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
       userPrompt: [
         "Transforme a receita abaixo e devolva no schema pedido.",
         existingRecipe ? `Receita base: ${existingRecipe}` : "",
+        externalBase ? `Referencia externa para inspiracao: ${externalBase}` : "",
         activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
         category ? `Categoria desejada: ${category}.` : "",
         complexity ? `Complexidade desejada: ${complexity}.` : "",
@@ -193,6 +232,7 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
       systemPrompt,
       userPrompt: [
         "Crie uma receita personalizada para o seguinte perfil nutricional.",
+        externalBase ? `Referencia de preparo externa: ${externalBase}` : "",
         `Ingredientes prioritarios: ${ingredients.join(", ") || "livre"}.`,
         description ? `Descricao do prato desejado: ${description}.` : "",
         category ? `Tipo de prato: ${category}.` : "",
@@ -209,7 +249,8 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[]) {
     systemPrompt,
     userPrompt: [
       "Crie uma receita completa usando os ingredientes abaixo.",
-      `Ingredientes: ${ingredients.join(", ")}.`,
+      externalBase ? `Use esta base como ponto de partida (Traduza e adapte): ${externalBase}` : "",
+      `Ingredientes solicitados: ${ingredients.join(", ")}.`,
       description ? `Descricao do prato desejado: ${description}.` : "",
       category ? `Categoria desejada: ${category}.` : "",
       complexity ? `Complexidade desejada: ${complexity}.` : "",
@@ -264,7 +305,8 @@ serve(async (req) => {
       });
     }
 
-    const { systemPrompt, userPrompt } = buildPrompt(body, ingredients);
+    const externalBase = await fetchExternalRecipe(ingredients);
+    const { systemPrompt, userPrompt } = buildPrompt(body, ingredients, externalBase);
     const model = "gemini-2.5-flash-lite";
 
     const aiResponse = await fetch(
