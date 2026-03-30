@@ -109,6 +109,10 @@ const Auth = () => {
             </button>
           </div>
 
+          <p className="mt-6 text-center text-[10px] text-muted-foreground/60 leading-relaxed px-4">
+            {t('auth.oauthNotice', 'Ao entrar com Google ou Apple, sua conta no GastronomIA será criada ou acessada automaticamente.')}
+          </p>
+
           <div className="mt-8 text-center">
             <Link to="/privacy" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary transition-colors">
               Politica de privacidade e Termos
