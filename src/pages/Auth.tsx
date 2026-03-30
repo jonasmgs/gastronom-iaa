@@ -169,14 +169,14 @@ const Auth = () => {
               className="flex items-center justify-center gap-2 rounded-xl border border-input bg-background py-2 text-sm font-medium hover:bg-accent transition-colors"
             >
               <Chrome className="h-4 w-4" />
-              <span>Google</span>
+              <span>{t('auth.signInWithGoogle')}</span>
             </button>
             <button
               onClick={() => handleOAuthLogin('apple')}
               className="flex items-center justify-center gap-2 rounded-xl border border-input bg-background py-2 text-sm font-medium hover:bg-accent transition-colors"
             >
               <Apple className="h-4 w-4" />
-              <span>Apple</span>
+              <span>{t('auth.signInWithApple')}</span>
             </button>
           </div>
 
