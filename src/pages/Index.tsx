@@ -25,7 +25,7 @@ import bgUtensils from '@/assets/bg-utensils.jpg';
 const bgImages = [bgIngredients, bgIngredients2, bgIngredients3, bgIngredients4, bgUtensils];
 
 const Index = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle();
   const { user, session } = useAuth();
   const { name } = useProfile();

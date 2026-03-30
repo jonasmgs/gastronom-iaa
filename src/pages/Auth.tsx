@@ -18,10 +18,6 @@ type Mode = 'login' | 'signup' | 'forgot';
 
 const Auth = () => {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<Mode>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentBg, setCurrentBg] = useState(0);
 
@@ -32,41 +28,8 @@ const Auth = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        toast.success(t('auth.checkEmail'));
-      } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
-        });
-        if (error) throw error;
-        toast.success(t('auth.recoveryEmail'));
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('auth.unexpectedError');
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-    
   const handleOAuthLogin = async (provider: 'google' | 'apple') => {
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -78,10 +41,10 @@ const Auth = () => {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('auth.unexpectedError');
       toast.error(message);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const title = mode === 'login' ? t('auth.login') : mode === 'signup' ? t('auth.signup') : t('auth.forgot');
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-4 overflow-hidden">
@@ -121,80 +84,34 @@ const Auth = () => {
           <p className="mt-1 text-sm text-muted-foreground">{t('auth.appSlogan')}</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-sm p-6 shadow-lg">
-          <h2 className="mb-6 text-center text-lg font-semibold text-card-foreground">{title}</h2>
+        <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-sm p-8 shadow-xl">
+          <h2 className="mb-8 text-center text-xl font-bold text-card-foreground">
+            {t('auth.login')}
+          </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <AnimatePresence mode="wait">
-              {mode === 'signup' && (
-                <motion.div key="name" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input type="text" placeholder={t('auth.name')} value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" required />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input type="email" placeholder={t('auth.email')} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" required />
-            </div>
-
-            {mode !== 'forgot' && (
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input type="password" placeholder={t('auth.password')} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-input bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" required minLength={6} />
-              </div>
-            )}
-
-            <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-              {title}
-            </button>
-          </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">{t('auth.or')}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
             <button
               onClick={() => handleOAuthLogin('google')}
-              className="flex items-center justify-center gap-2 rounded-xl border border-input bg-background py-2 text-sm font-medium hover:bg-accent transition-colors"
+              disabled={loading}
+              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-background px-4 py-4 text-sm font-semibold text-foreground transition-all hover:bg-accent hover:border-primary/50 active:scale-[0.98] disabled:opacity-50"
             >
-              <Chrome className="h-4 w-4" />
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Chrome className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />}
               <span>{t('auth.signInWithGoogle')}</span>
             </button>
+
             <button
               onClick={() => handleOAuthLogin('apple')}
-              className="flex items-center justify-center gap-2 rounded-xl border border-input bg-background py-2 text-sm font-medium hover:bg-accent transition-colors"
+              disabled={loading}
+              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl border border-primary bg-primary px-4 py-4 text-sm font-semibold text-primary-foreground transition-all hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
             >
-              <Apple className="h-4 w-4" />
+              <Apple className="h-5 w-5 group-hover:scale-110 transition-transform" />
               <span>{t('auth.signInWithApple')}</span>
             </button>
           </div>
 
-          <div className="mt-5 space-y-2 text-center text-xs text-muted-foreground">
-            {mode === 'login' && (
-              <>
-                <button onClick={() => setMode('forgot')} className="block w-full hover:text-foreground transition-colors">{t('auth.forgotPassword')}</button>
-                <button onClick={() => setMode('signup')} className="block w-full hover:text-foreground transition-colors">{t('auth.createAccount')}</button>
-              </>
-            )}
-            {mode === 'signup' && (
-              <button onClick={() => setMode('login')} className="block w-full hover:text-foreground transition-colors">{t('auth.haveAccount')}</button>
-            )}
-            {mode === 'forgot' && (
-              <button onClick={() => setMode('login')} className="block w-full hover:text-foreground transition-colors">{t('auth.backToLogin')}</button>
-            )}
-            <Link to="/privacy" className="block w-full hover:text-foreground transition-colors">
-              Politica de privacidade
+          <div className="mt-8 text-center">
+            <Link to="/privacy" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary transition-colors">
+              Politica de privacidade e Termos
             </Link>
           </div>
         </div>
