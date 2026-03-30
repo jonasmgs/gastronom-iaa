@@ -39,6 +39,9 @@ export default {
     sessionExpired: 'Sua sessão foi encerrada porque você entrou em outro dispositivo.',
     appName: 'NutriChef AI',
     appSlogan: 'Receitas inteligentes com IA',
+    signInWithGoogle: 'Entrar com Google',
+    signInWithApple: 'Entrar com Apple',
+    or: 'ou',
   },
   home: {
     hello: 'Olá,',

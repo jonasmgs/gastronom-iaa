@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { ChefHat, Mail, Lock, User, ArrowRight, Loader2, Chrome, Apple } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -63,6 +63,21 @@ const Auth = () => {
       toast.error(message);
     } finally {
       setLoading(false);
+    }
+  };
+    
+  const handleOAuthLogin = async (provider: 'google' | 'apple') => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('auth.unexpectedError');
+      toast.error(message);
     }
   };
 
@@ -138,6 +153,32 @@ const Auth = () => {
               {title}
             </button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">{t('auth.or')}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleOAuthLogin('google')}
+              className="flex items-center justify-center gap-2 rounded-xl border border-input bg-background py-2 text-sm font-medium hover:bg-accent transition-colors"
+            >
+              <Chrome className="h-4 w-4" />
+              <span>Google</span>
+            </button>
+            <button
+              onClick={() => handleOAuthLogin('apple')}
+              className="flex items-center justify-center gap-2 rounded-xl border border-input bg-background py-2 text-sm font-medium hover:bg-accent transition-colors"
+            >
+              <Apple className="h-4 w-4" />
+              <span>Apple</span>
+            </button>
+          </div>
 
           <div className="mt-5 space-y-2 text-center text-xs text-muted-foreground">
             {mode === 'login' && (
