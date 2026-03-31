@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders, isOriginAllowed, checkRateLimit } from "../_shared/config.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const corsHeaders = getCorsHeaders(null);
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -46,8 +43,19 @@ function splitText(text: string) {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  
+  if (!isOriginAllowed(origin)) {
+    return new Response(JSON.stringify({ error: "Origem nao permitida" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const specificCorsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: specificCorsHeaders });
   }
 
   try {
@@ -55,7 +63,7 @@ serve(async (req) => {
     if (!bearer) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -64,7 +72,22 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const rateLimit = checkRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({ 
+        error: "Limite de requisicoes excedido. Tente novamente em alguns segundos.",
+        retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+      }), {
+        status: 429,
+        headers: { 
+          ...specificCorsHeaders, 
+          "Content-Type": "application/json",
+          "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+        },
       });
     }
 
@@ -85,14 +108,14 @@ serve(async (req) => {
     if (messages.length === 0) {
       return new Response(JSON.stringify({ error: "Envie ao menos uma mensagem" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!recipeContext.name) {
       return new Response(JSON.stringify({ error: "Contexto da receita e obrigatorio" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -100,7 +123,7 @@ serve(async (req) => {
     if (!googleAiKey) {
       return new Response(JSON.stringify({ error: "GOOGLE_AI_KEY nao configurada" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -143,7 +166,7 @@ serve(async (req) => {
       console.error("Google AI error:", aiResponse.status, errorText);
       return new Response(JSON.stringify({ error: "Erro na IA" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -156,7 +179,7 @@ serve(async (req) => {
     if (!answer) {
       return new Response(JSON.stringify({ error: "A IA nao retornou resposta" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -173,7 +196,7 @@ serve(async (req) => {
 
     return new Response(stream, {
       headers: {
-        ...corsHeaders,
+        ...specificCorsHeaders,
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
         "Content-Type": "text/event-stream",
@@ -184,7 +207,7 @@ serve(async (req) => {
     console.error("chef-chat error:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
     });
   }
 });

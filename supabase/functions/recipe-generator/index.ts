@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders, isOriginAllowed, checkRateLimit } from "../_shared/config.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const corsHeaders = getCorsHeaders(null);
 
 type Ingredient = {
   name: string;
@@ -262,8 +259,19 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[], exter
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  
+  if (!isOriginAllowed(origin)) {
+    return new Response(JSON.stringify({ error: "Origem nao permitida" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const specificCorsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: specificCorsHeaders });
   }
 
   try {
@@ -271,7 +279,7 @@ serve(async (req) => {
     if (!bearer) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -281,7 +289,22 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const rateLimit = checkRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({ 
+        error: "Limite de requisicoes excedido. Tente novamente em alguns segundos.",
+        retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+      }), {
+        status: 429,
+        headers: { 
+          ...specificCorsHeaders, 
+          "Content-Type": "application/json",
+          "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+        },
       });
     }
 
@@ -293,7 +316,7 @@ serve(async (req) => {
     if (mode !== "transform" && !nutritionMode && ingredients.length < 2) {
       return new Response(JSON.stringify({ error: "Envie pelo menos 2 ingredientes" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -301,7 +324,7 @@ serve(async (req) => {
     if (!googleAiKey) {
       return new Response(JSON.stringify({ error: "GOOGLE_AI_KEY nao configurada" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -331,7 +354,7 @@ serve(async (req) => {
       console.error("Google AI error:", aiResponse.status, errorText);
       return new Response(JSON.stringify({ error: "Erro ao gerar receita" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -344,7 +367,7 @@ serve(async (req) => {
     if (!rawText) {
       return new Response(JSON.stringify({ error: "A IA nao retornou receita" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -352,14 +375,14 @@ serve(async (req) => {
     const normalized = normalizeRecipe(parsed);
 
     return new Response(JSON.stringify(normalized), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro interno";
     console.error("recipe-generator error:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
     });
   }
 });

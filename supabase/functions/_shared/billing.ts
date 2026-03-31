@@ -4,26 +4,22 @@ import {
   type SupabaseClient,
   type User,
 } from "npm:@supabase/supabase-js@2.57.2";
+import { getCorsHeaders } from "./config.ts";
 
 type LogStep = (step: string, details?: Record<string, unknown>) => void;
 
-// O DEFAULT_ORIGIN é usado como fallback caso o checkout seja iniciado sem o header origin.
 const DEFAULT_ORIGIN = "https://app.gastronomia.com.br";
 
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-user-jwt, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+export const corsHeaders = getCorsHeaders(null);
+
+export function getOrigin(req: Request) {
+  return req.headers.get("origin") || DEFAULT_ORIGIN;
+}
 
 function getRequiredEnv(name: string) {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`${name} is not set`);
   return value;
-}
-
-export function getOrigin(req: Request) {
-  return req.headers.get("origin") || DEFAULT_ORIGIN;
 }
 
 export function createAdminClient(logStep?: LogStep): SupabaseClient | null {
