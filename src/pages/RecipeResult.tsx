@@ -49,6 +49,42 @@ const RecipeResult = () => {
 
   usePageTitle(recipe?.recipe_name);
 
+  const getIngredients = useCallback((): Ingredient[] => {
+    if (!recipe) return [];
+    try {
+      const raw = recipe.ingredients;
+      console.log('[RecipeResult] Raw ingredients type:', typeof raw, Array.isArray(raw));
+      
+      // If it's already an array (backwards compatibility)
+      if (Array.isArray(raw)) {
+        return raw;
+      }
+      
+      // If it's a string, parse it
+      if (typeof raw === 'string') {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      
+      return [];
+    } catch (e) {
+      console.error('[RecipeResult] Error parsing ingredients:', e);
+      return [];
+    }
+  }, [recipe]);
+
+  const getMeta = useCallback((): RecipeMeta => {
+    if (!recipe?.nutrition_info) return {};
+    try {
+      const parsed = JSON.parse(recipe.nutrition_info);
+      console.log('[RecipeResult] Parsed meta:', parsed);
+      return parsed;
+    } catch (e) {
+      console.error('[RecipeResult] Error parsing nutrition_info:', e);
+      return {};
+    }
+  }, [recipe]);
+
   const fetchRecipe = useCallback(async () => {
     if (!id) return;
     console.log('[RecipeResult] Fetching recipe:', id);
@@ -75,9 +111,8 @@ const RecipeResult = () => {
 
   const handleShare = async () => {
     if (!recipe) return;
-    const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
-    let meta: RecipeMeta = {};
-    try { meta = JSON.parse(recipe.nutrition_info || '{}'); } catch { meta = {}; }
+    const ing = getIngredients();
+    const meta = getMeta();
     const steps = meta.steps || [];
 
     let text = `🍽️ ${recipe.recipe_name}\n`;
@@ -87,7 +122,7 @@ const RecipeResult = () => {
     if (meta.cook_time) text += `🕐 ${t('common.cooking')}: ${meta.cook_time}\n`;
     if (meta.servings) text += `👥 ${meta.servings} ${t('common.portions')}\n`;
     text += `\n${t('recipe.ingredients')}\n`;
-    ingredients.forEach(ing => {
+    ing.forEach(ing => {
       text += `• ${ing.name} — ${ing.quantity} (${ing.calories} kcal)\n`;
     });
     text += `\n${t('recipe.stepByStep')}\n`;
@@ -123,8 +158,8 @@ const RecipeResult = () => {
     if (!recipe || !hasActiveFilters || !user) return;
     setTransforming(true);
     try {
-      const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
-      const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${ingredients.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
+      const ing = getIngredients();
+      const existingText = `Nome: ${recipe.recipe_name}\nIngredientes: ${ing.map(i => `${i.name} (${i.quantity})`).join(', ')}\nPreparo: ${recipe.preparation}`;
 
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: { mode: 'transform', existing_recipe: existingText, filters },
@@ -187,16 +222,8 @@ const RecipeResult = () => {
 
   if (!recipe) return null;
 
-  const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
-
-  let meta: RecipeMeta = {};
-  try {
-    const parsed = JSON.parse(recipe.nutrition_info || '{}');
-    if (typeof parsed === 'object' && parsed !== null) meta = parsed;
-  } catch {
-    meta = { nutrition_info: recipe.nutrition_info || '' };
-  }
-
+  const ingredients = getIngredients();
+  const meta = getMeta();
   const steps = meta.steps || [];
   const hasDetailedFormat = steps.length > 0;
 
