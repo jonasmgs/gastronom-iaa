@@ -72,6 +72,7 @@ const Index = () => {
     setShowServingsModal(false);
     setGenerating(true);
     try {
+      console.log('[Index] Generating recipe with ingredients:', ingredients);
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
         body: { 
           ingredients, 
@@ -84,18 +85,28 @@ const Index = () => {
         },
         token: session?.access_token,
       });
-      if (error) throw error;
-
+      if (error) {
+        console.error('[Index] Edge function error:', error);
+        throw error;
+      }
+      console.log('[Index] Recipe generated:', data?.recipe_name);
       const recipe = data;
+      
+      if (!recipe) {
+        console.error('[Index] No recipe data returned');
+        throw new Error('Receita não foi gerada');
+      }
+      
+      console.log('[Index] Saving recipe to database...');
       const preparation = recipe.steps
         ? recipe.steps.map((s: Step) => `${s.step_number}. ${s.title}: ${s.description}`).join('\n\n')
         : recipe.preparation || '';
-
+        
       const { data: saved, error: saveErr } = await supabase.from('recipes').insert({
         user_id: user.id,
         recipe_name: recipe.recipe_name,
         ingredients: JSON.stringify(recipe.ingredients || []),
-        preparation,
+        preparation: preparation,
         calories_total: recipe.calories_total || 0,
         nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
@@ -107,6 +118,8 @@ const Index = () => {
           steps: recipe.steps || [],
         }),
       }).select().single();
+
+      console.log('[Index] Save result:', { saved, saveErr });
 
       if (saveErr) throw saveErr;
       navigate(`/recipe/${saved.id}`);

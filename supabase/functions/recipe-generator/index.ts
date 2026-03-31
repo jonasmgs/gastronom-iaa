@@ -260,11 +260,12 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[], exter
 
 serve(async (req) => {
   const origin = req.headers.get("origin");
+  const defaultCorsHeaders = getCorsHeaders(null);
   
   if (!isOriginAllowed(origin)) {
     return new Response(JSON.stringify({ error: "Origem nao permitida" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...defaultCorsHeaders, "Content-Type": "application/json" },
     });
   }
 

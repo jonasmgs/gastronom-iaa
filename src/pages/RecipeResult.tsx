@@ -51,15 +51,19 @@ const RecipeResult = () => {
 
   const fetchRecipe = useCallback(async () => {
     if (!id) return;
+    console.log('[RecipeResult] Fetching recipe:', id);
     const { data, error } = await supabase
       .from('recipes')
       .select('*')
       .eq('id', id)
       .single();
+    console.log('[RecipeResult] Query result:', { data, error });
     if (error || !data) {
+      console.error('[RecipeResult] Error:', error);
       toast.error(t('recipes.notFound'));
       navigate('/');
     } else {
+      console.log('[RecipeResult] Recipe loaded:', data.recipe_name);
       setRecipe(data);
     }
     setLoading(false);
