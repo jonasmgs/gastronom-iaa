@@ -5,6 +5,7 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:5173",
   "capacitor://localhost",
   "http://localhost",
+  "ionic://localhost",
 ];
 
 const PRODUCTION_DOMAINS = ["gastronomia.com.br", "www.gastronomia.com.br"];
@@ -14,7 +15,7 @@ export function getAllowedOrigins(): string[] {
 }
 
 export function isOriginAllowed(origin: string | null): boolean {
-  if (!origin) return false;
+  if (!origin) return true; // Allow requests without origin header (server-to-server)
   
   const normalizedOrigin = origin.replace(/\/$/, "");
   
@@ -26,6 +27,11 @@ export function isOriginAllowed(origin: string | null): boolean {
     if (normalizedOrigin.includes(domain)) {
       return true;
     }
+  }
+  
+  // Allow localhost in development
+  if (normalizedOrigin.includes("localhost") || normalizedOrigin.includes("127.0.0.1")) {
+    return true;
   }
   
   return false;
