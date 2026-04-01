@@ -167,7 +167,13 @@ const RecipeBookGenerator = ({ recipes, userName }: Props) => {
           y += 7;
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
-          const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
+          let ingredients: Ingredient[] = [];
+          try {
+            const parsed = typeof recipe.ingredients === 'string' 
+              ? JSON.parse(recipe.ingredients) 
+              : recipe.ingredients;
+            ingredients = Array.isArray(parsed) ? parsed : [];
+          } catch { ingredients = []; }
           for (const ing of ingredients) {
             const line = `• ${ing.name} — ${ing.quantity} (${ing.calories} kcal)`;
             doc.text(line, margin + 2, y);
