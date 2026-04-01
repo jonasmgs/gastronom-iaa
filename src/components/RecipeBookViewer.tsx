@@ -191,9 +191,10 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
     try { meta = JSON.parse(recipe.nutrition_info || '{}'); } catch { /* */ }
     let ingredients: Ingredient[] = [];
     try {
-      ingredients = typeof recipe.ingredients === 'string' 
+      const parsed = typeof recipe.ingredients === 'string' 
         ? JSON.parse(recipe.ingredients) 
-        : (recipe.ingredients as unknown as Ingredient[]) || [];
+        : recipe.ingredients;
+      ingredients = Array.isArray(parsed) ? parsed : [];
     } catch { ingredients = []; }
     const steps = meta.steps || [];
 
