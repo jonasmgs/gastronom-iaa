@@ -189,7 +189,12 @@ const RecipeBookViewer = ({ recipes, userName, open, onClose }: Props) => {
     const recipe = page.recipe!;
     let meta: RecipeMeta = {};
     try { meta = JSON.parse(recipe.nutrition_info || '{}'); } catch { /* */ }
-    const ingredients = (recipe.ingredients as unknown as Ingredient[]) || [];
+    let ingredients: Ingredient[] = [];
+    try {
+      ingredients = typeof recipe.ingredients === 'string' 
+        ? JSON.parse(recipe.ingredients) 
+        : (recipe.ingredients as unknown as Ingredient[]) || [];
+    } catch { ingredients = []; }
     const steps = meta.steps || [];
 
     return (
