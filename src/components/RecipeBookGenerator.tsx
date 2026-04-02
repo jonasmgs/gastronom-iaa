@@ -169,11 +169,21 @@ const RecipeBookGenerator = ({ recipes, userName }: Props) => {
           doc.setFont('helvetica', 'normal');
           let ingredients: Ingredient[] = [];
           try {
-            const parsed = typeof recipe.ingredients === 'string' 
-              ? JSON.parse(recipe.ingredients) 
-              : recipe.ingredients;
-            ingredients = Array.isArray(parsed) ? parsed : [];
-          } catch { ingredients = []; }
+            let parsed: unknown = recipe.ingredients;
+            if (typeof recipe.ingredients === 'string') {
+              parsed = JSON.parse(recipe.ingredients);
+            } else if (recipe.ingredients === null || recipe.ingredients === undefined) {
+              parsed = [];
+            }
+            if (Array.isArray(parsed)) {
+              ingredients = parsed.filter((ing): ing is Ingredient => 
+                ing !== null && ing !== undefined && typeof ing.name === 'string'
+              );
+            }
+          } catch (e) {
+            console.error('Error parsing ingredients:', e);
+            ingredients = [];
+          }
           for (const ing of ingredients) {
             const line = `• ${ing.name} — ${ing.quantity} (${ing.calories} kcal)`;
             doc.text(line, margin + 2, y);
