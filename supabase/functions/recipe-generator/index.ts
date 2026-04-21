@@ -405,7 +405,7 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Google AI error:", aiResponse.status, errorText);
+      console.error("Google AI error:", model, aiResponse.status, errorText);
       return new Response(JSON.stringify({ error: "Erro ao gerar receita" }), {
         status: 500,
         headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
