@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, isOriginAllowed, checkRateLimit } from "../_shared/config.ts";
+import {
+  extractGoogleAiText,
+  generateGoogleAiContent,
+} from "../_shared/google-ai.ts";
 
 const corsHeaders = getCorsHeaders(null);
 
@@ -18,6 +22,71 @@ type Step = {
   duration: string;
   tip: string;
 };
+
+const recipeResponseSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "recipe_name",
+    "difficulty",
+    "prep_time",
+    "cook_time",
+    "servings",
+    "dietary_tags",
+    "ingredients",
+    "steps",
+    "calories_total",
+    "nutrition_info",
+    "chef_tips",
+    "substitutions_made",
+  ],
+  properties: {
+    recipe_name: { type: "string" },
+    difficulty: { type: "string", enum: ["Facil", "Medio", "Dificil"] },
+    prep_time: { type: "string" },
+    cook_time: { type: "string" },
+    servings: { type: "integer", minimum: 1, maximum: 20 },
+    dietary_tags: {
+      type: "array",
+      items: { type: "string" },
+    },
+    ingredients: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "quantity", "calories", "tip"],
+        properties: {
+          name: { type: "string" },
+          quantity: { type: "string" },
+          calories: { type: "number" },
+          tip: { type: "string" },
+        },
+      },
+    },
+    steps: {
+      type: "array",
+      minItems: 4,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["step_number", "title", "description", "duration", "tip"],
+        properties: {
+          step_number: { type: "integer", minimum: 1 },
+          title: { type: "string" },
+          description: { type: "string" },
+          duration: { type: "string" },
+          tip: { type: "string" },
+        },
+      },
+    },
+    calories_total: { type: "number", minimum: 0 },
+    nutrition_info: { type: "string" },
+    chef_tips: { type: "string" },
+    substitutions_made: { type: "string" },
+  },
+} as const;
 
 function getBearerToken(req: Request) {
   const customToken = req.headers.get("x-user-jwt");
@@ -321,34 +390,18 @@ serve(async (req) => {
       });
     }
 
-    const googleAiKey = Deno.env.get("GOOGLE_AI_KEY");
-    if (!googleAiKey) {
-      return new Response(JSON.stringify({ error: "GOOGLE_AI_KEY nao configurada" }), {
-        status: 500,
-        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const externalBase = await fetchExternalRecipe(ingredients);
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients, externalBase);
-    const model = "gemini-3-flash";
-
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleAiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json",
-          },
-        }),
+    const { model, response: aiResponse } = await generateGoogleAiContent({
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      systemInstruction: systemPrompt,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json",
+        responseJsonSchema: recipeResponseSchema,
       },
-    );
+    });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
@@ -359,11 +412,8 @@ serve(async (req) => {
       });
     }
 
-    const data = await aiResponse.json();
-    const rawText = data.candidates?.[0]?.content?.parts
-      ?.map((part: { text?: string }) => part.text ?? "")
-      .join("")
-      .trim();
+    const data = await aiResponse.json() as Record<string, unknown>;
+    const rawText = extractGoogleAiText(data);
 
     if (!rawText) {
       return new Response(JSON.stringify({ error: "A IA nao retornou receita" }), {

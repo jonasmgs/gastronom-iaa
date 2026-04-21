@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, isOriginAllowed, checkRateLimit } from "../_shared/config.ts";
+import {
+  extractGoogleAiText,
+  generateGoogleAiContent,
+} from "../_shared/google-ai.ts";
 
 const corsHeaders = getCorsHeaders(null);
 
@@ -119,14 +123,6 @@ serve(async (req) => {
       });
     }
 
-    const googleAiKey = Deno.env.get("GOOGLE_AI_KEY");
-    if (!googleAiKey) {
-      return new Response(JSON.stringify({ error: "GOOGLE_AI_KEY nao configurada" }), {
-        status: 500,
-        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const systemPrompt = [
       "Voce e o Gastronom.IA, um chef virtual especialista em gastronomia.",
       `A receita atual e: ${recipeContext.name}.`,
@@ -145,36 +141,26 @@ serve(async (req) => {
       parts: [{ text: message.content }],
     }));
 
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${googleAiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          },
-        }),
+    const { model, response: aiResponse } = await generateGoogleAiContent({
+      contents,
+      systemInstruction: systemPrompt,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
       },
-    );
+    });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Google AI error:", aiResponse.status, errorText);
+      console.error("Google AI error:", model, aiResponse.status, errorText);
       return new Response(JSON.stringify({ error: "Erro na IA" }), {
         status: 500,
         headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const data = await aiResponse.json();
-    const answer = data.candidates?.[0]?.content?.parts
-      ?.map((part: { text?: string }) => part.text ?? "")
-      .join("")
-      .trim();
+    const data = await aiResponse.json() as Record<string, unknown>;
+    const answer = extractGoogleAiText(data);
 
     if (!answer) {
       return new Response(JSON.stringify({ error: "A IA nao retornou resposta" }), {
