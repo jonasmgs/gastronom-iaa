@@ -1,5 +1,5 @@
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 const PrivacyPolicy = () => {
@@ -60,6 +60,15 @@ const PrivacyPolicy = () => {
               Para publicacao na Play Store, publique esta mesma politica em um dominio oficial do app e use o link
               publico no Google Play Console.
             </p>
+          </div>
+
+          <div className="mt-6 border-t border-border pt-4">
+            <Link
+              to="/terms"
+              className="text-sm font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              Ler os Termos de servico
+            </Link>
           </div>
         </section>
       </div>

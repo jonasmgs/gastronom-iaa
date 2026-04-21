@@ -31,9 +31,16 @@ SUPABASE_URL
 SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 GOOGLE_AI_KEY
+GOOGLE_AI_MODEL=gemini-2.5-flash-lite
 STRIPE_SECRET_KEY
 STRIPE_PRICE_ID
 ```
+
+Observacoes sobre IA:
+
+- O app usa `gemini-2.5-flash-lite` por padrao nas Edge Functions.
+- `GOOGLE_AI_MODEL` e opcional; se nao for definido, o backend usa `gemini-2.5-flash-lite`.
+- Nao adote `gemini-2.0-flash-lite` em novos deploys: o Google marcou esse modelo como deprecated e com desligamento anunciado para 1 de junho de 2026.
 
 ## Stripe checkout
 
