@@ -14,7 +14,7 @@ type GoogleAiRequestOptions = {
 };
 
 const GOOGLE_AI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-export const DEFAULT_GOOGLE_AI_MODEL = "gemini-3.1-flash-lite-preview";
+export const DEFAULT_GOOGLE_AI_MODEL = "gemini-2.5-flash-lite";
 
 function getRequiredEnv(name: string) {
   const value = Deno.env.get(name)?.trim();
