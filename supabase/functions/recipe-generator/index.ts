@@ -279,6 +279,24 @@ function normalizeRecipe(recipe: Record<string, unknown>) {
   };
 }
 
+function generateCacheKey(ingredients: string[], body: Record<string, unknown>) {
+  const sortedIngs = [...ingredients].sort().join(",").toLowerCase();
+  const filters = body.filters as Record<string, boolean> || {};
+  const activeFilters = Object.entries(filters)
+    .filter(([_, active]) => active)
+    .map(([name]) => name)
+    .sort()
+    .join(",");
+  const servings = body.servings || 2;
+  const dietMode = body.dietMode ? "diet" : "normal";
+  const language = body.language || "pt";
+  const complexity = body.complexity || "Medio";
+  const category = body.category || "Principal";
+  
+  return `v1:${sortedIngs}|${activeFilters}|${servings}|${dietMode}|${language}|${complexity}|${category}`;
+}
+
+
 async function fetchExternalRecipe(ingredients: string[]) {
   if (ingredients.length === 0) return null;
   
@@ -511,6 +529,32 @@ serve(async (req) => {
       });
     }
 
+    const cacheKey = generateCacheKey(ingredients, body);
+    
+    // Tenta buscar no cache global (qualquer receita salva com essa chave)
+    const { data: cachedRecipe, error: cacheError } = await supabaseClient
+      .from("recipes")
+      .select("*")
+      .eq("cache_key", cacheKey)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!cacheError && cachedRecipe) {
+      console.log("Cache hit! Returning existing recipe for key:", cacheKey);
+      return new Response(JSON.stringify({
+        recipe_name: cachedRecipe.recipe_name,
+        calories_total: cachedRecipe.calories_total,
+        nutrition_info: cachedRecipe.nutrition_info,
+        preparation: cachedRecipe.preparation,
+        ingredients: cachedRecipe.ingredients,
+        // Nota: O cache retorna o que está no banco, garantindo custo zero de IA
+        _cached: true
+      }), {
+        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     await consumeAiCredit(supabaseClient, user.id);
     creditConsumed = true;
     creditUserId = user.id;
@@ -571,7 +615,11 @@ serve(async (req) => {
     const parsed = parseJsonPayload(rawText);
     const normalized = normalizeRecipe(parsed);
 
-    return new Response(JSON.stringify(normalized), {
+    // Retorna a receita e inclui a cache_key para que o frontend possa salvá-la no banco
+    return new Response(JSON.stringify({
+      ...normalized,
+      cache_key: cacheKey
+    }), {
       headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

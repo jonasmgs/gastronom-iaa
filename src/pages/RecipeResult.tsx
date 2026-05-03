@@ -197,6 +197,7 @@ const RecipeResult = () => {
         ingredients: JSON.stringify(transformed.ingredients || []),
         preparation,
         calories_total: transformed.calories_total || 0,
+        cache_key: transformed.cache_key,
         nutrition_info: JSON.stringify({
           nutrition_info: transformed.nutrition_info || '',
           nutrition_details: transformed.nutrition_details || null,

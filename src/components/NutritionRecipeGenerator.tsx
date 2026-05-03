@@ -86,6 +86,7 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
         ingredients: JSON.stringify(recipe.ingredients || []),
         preparation,
         calories_total: recipe.calories_total || 0,
+        cache_key: recipe.cache_key,
         nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
           nutrition_details: recipe.nutrition_details || null,
