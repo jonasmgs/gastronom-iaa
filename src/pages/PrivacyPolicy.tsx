@@ -42,7 +42,7 @@ const PrivacyPolicy = () => {
 
             <p>
               As receitas e mensagens enviadas para recursos de IA podem ser processadas pelos provedores
-              configurados pelo app para gerar respostas culinarias. Dados de pagamento sao processados pela Stripe.
+              configurados pelo app para gerar respostas culinarias. Dados de pagamento sao processados exclusivamente pelas lojas oficiais (Google Play Store e Apple App Store).
             </p>
 
             <p>

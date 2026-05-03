@@ -87,8 +87,8 @@ const AppRoutes = () => {
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/sucesso" element={<Navigate to="/settings?checkout=success" replace />} />
-          <Route path="/planos" element={<Navigate to="/settings?checkout=cancel" replace />} />
+
+
           <Route path="/nutrition" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
