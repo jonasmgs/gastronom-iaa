@@ -241,7 +241,7 @@ export default {
     cat_other: 'Outras Receitas',
   },
   subscription: {
-    description: 'Receitas ilimitadas, livro de receitas PDF, chat com chef IA (100/mês)',
+    description: 'Receitas ilimitadas, livro de receitas PDF, chat com chef IA (5/mês)',
     subscribe: 'Assinar agora',
     success: 'Assinatura ativada com sucesso!',
     cancelled: 'Assinatura cancelada.',
@@ -249,7 +249,7 @@ export default {
     manage: 'Gerenciar',
     benefit1: 'Receitas ilimitadas',
     benefit2: 'Livro de receitas em PDF',
-    benefit3: 'Chat com chef IA (100/mês)',
+    benefit3: 'Chat com chef IA (5/mês)',
     maybeLater: 'Talvez depois',
   },
   paywall: {
@@ -272,7 +272,7 @@ export default {
     subscriptionText: 'O acesso a funcionalidades premium requer assinatura. Ao assinar, voce concorda com os seguintes termos:',
     subBenefit1: 'Receitas ilimitadas',
     subBenefit2: 'Livro de receitas em PDF',
-    subBenefit3: 'Chat com chef IA (100 perguntas por mes)',
+    subBenefit3: 'Chat com chef IA (5 perguntas por mes)',
     usage: 'Uso Adequado',
     usageText: 'Voce concorda em nao utilizar o servico para qualquer proposito ilegal ou nao autorizado. O usuario e responsavel por verificar alergias e restricoes alimentares.',
     intellectual: 'Propriedade Intelectual',
