@@ -27,13 +27,14 @@ test.describe('Gastronom.IA E2E Tests', () => {
 
   test('should have terms of service link on privacy page', async ({ page }) => {
     await page.goto('/privacy');
-    const termsLink = page.locator('a[href="/terms"]').first();
+    const termsLink = page.getByRole('link', { name: /termos/i }).first();
     await expect(termsLink).toBeVisible();
   });
 
   test('should navigate to terms of service page', async ({ page }) => {
     await page.goto('/privacy');
-    const termsLink = page.locator('a[href="/terms"]').first();
+    const termsLink = page.getByRole('link', { name: /termos/i }).first();
+    await termsLink.scrollIntoViewIfNeeded();
     await termsLink.click();
     await expect(page).toHaveURL(/\/terms/);
   });
