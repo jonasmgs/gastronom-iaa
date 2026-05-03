@@ -529,6 +529,10 @@ serve(async (req) => {
       });
     }
 
+    await consumeAiCredit(supabaseClient, user.id);
+    creditConsumed = true;
+    creditUserId = user.id;
+
     const cacheKey = generateCacheKey(ingredients, body);
     
     // Tenta buscar no cache global (qualquer receita salva com essa chave)
@@ -549,15 +553,12 @@ serve(async (req) => {
         preparation: cachedRecipe.preparation,
         ingredients: cachedRecipe.ingredients,
         // Nota: O cache retorna o que está no banco, garantindo custo zero de IA
-        _cached: true
+        _cached: true,
+        cache_key: cacheKey
       }), {
         headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    await consumeAiCredit(supabaseClient, user.id);
-    creditConsumed = true;
-    creditUserId = user.id;
 
     const externalBase = await fetchExternalRecipe(ingredients);
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients, externalBase);
