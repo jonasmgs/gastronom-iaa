@@ -10,6 +10,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSubscription } from '@/hooks/useSubscription';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { notifyCreditsChanged } from '@/lib/credit-events';
 import BottomNav from '@/components/BottomNav';
 import IngredientCard from '@/components/IngredientCard';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -89,6 +90,7 @@ const Index = () => {
         console.error('[Index] Edge function error:', error);
         throw error;
       }
+      notifyCreditsChanged();
       console.log('[Index] Recipe generated:', data?.recipe_name);
       const recipe = data;
       

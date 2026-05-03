@@ -124,12 +124,65 @@ export type Database = {
           },
         ]
       }
+      user_monthly_credits: {
+        Row: {
+          credits_total: number
+          credits_used: number
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          credits_total?: number
+          credits_used?: number
+          period_start?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          credits_total?: number
+          credits_used?: number
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_monthly_credits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_user_credit: {
+        Args: { p_user_id?: string }
+        Returns: {
+          credits_total: number
+          credits_used: number
+          credits_remaining: number
+        }[]
+      }
+      get_user_monthly_credits: {
+        Args: { p_user_id?: string }
+        Returns: {
+          user_id: string
+          period_start: string
+          credits_total: number
+          credits_used: number
+          credits_remaining: number
+        }[]
+      }
+      refund_user_credit: {
+        Args: { p_user_id?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

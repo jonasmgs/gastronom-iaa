@@ -581,7 +581,7 @@ serve(async (req) => {
       await refundAiCredit(creditClient, creditUserId);
     }
     return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+      status: message.includes("Limite mensal") ? 402 : 500,
       headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
     });
   }

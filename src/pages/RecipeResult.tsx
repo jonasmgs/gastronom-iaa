@@ -13,6 +13,7 @@ import RecipeEditDrawer from '@/components/RecipeEditDrawer';
 import bgUtensils from '@/assets/bg-utensils.jpg';
 import type { Tables } from '@/integrations/supabase/types';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { notifyCreditsChanged } from '@/lib/credit-events';
 import type { Ingredient, NutrientItem, NutritionDetails, RecipeGeneratorResponse, Step } from '@/types/recipe';
 
 interface RecipeMeta {
@@ -183,6 +184,7 @@ const RecipeResult = () => {
         token: session?.access_token,
       });
       if (error) throw error;
+      notifyCreditsChanged();
 
       const transformed = data;
       const preparation = transformed.steps

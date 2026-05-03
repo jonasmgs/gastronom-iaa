@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { notifyCreditsChanged } from '@/lib/credit-events';
 import type { Ingredient } from '@/types/recipe';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
@@ -154,6 +155,7 @@ const RecipeChat = ({ recipe, recipeId, rawIngredients, open, onClose, onRecipeU
         onDelta: (chunk) => upsertAssistant(chunk),
         language: i18n.language,
         onDone: async () => {
+          notifyCreditsChanged();
           setIsLoading(false);
           // Check for substitution marker in the final response
           const match = assistantSoFar.match(/<<<SUBSTITUIR:\s*(.+?)\s*>>>\s*(.+?)>>>/);

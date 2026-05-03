@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import RecipeFilters from '@/components/RecipeFilters';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { notifyCreditsChanged } from '@/lib/credit-events';
 import type { RecipeGeneratorResponse, Step } from '@/types/recipe';
 
 interface NutritionData {
@@ -62,6 +63,7 @@ const NutritionRecipeGenerator = ({ nutritionData }: Props) => {
         },
       });
       if (error) throw error;
+      notifyCreditsChanged();
       setRecipe(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('common.error');

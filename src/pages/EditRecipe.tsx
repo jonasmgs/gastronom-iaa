@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
+import { notifyCreditsChanged } from '@/lib/credit-events';
 import BottomNav from '@/components/BottomNav';
 import type { RecipeGeneratorResponse, Step } from '@/types/recipe';
 import bgIngredients3 from '@/assets/bg-ingredients-3.jpg';
@@ -62,6 +63,7 @@ const EditRecipe = () => {
         token: session?.access_token,
       });
       if (error) throw error;
+      notifyCreditsChanged();
 
       const recipe = data;
       const preparation = recipe.steps
