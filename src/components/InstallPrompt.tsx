@@ -3,6 +3,7 @@ import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -11,9 +12,12 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function InstallPrompt() {
   const { t } = useTranslation();
+  const location = useLocation();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const blockedPaths = ['/auth', '/privacy', '/terms'];
+  const shouldHideBanner = blockedPaths.some((path) => location.pathname.startsWith(path));
 
   useEffect(() => {
     const dismissed = localStorage.getItem('install-prompt-dismissed');
@@ -54,7 +58,7 @@ export function InstallPrompt() {
 
   return (
     <AnimatePresence>
-      {showBanner && (
+      {showBanner && !shouldHideBanner && (
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
