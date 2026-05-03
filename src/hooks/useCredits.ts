@@ -20,7 +20,7 @@ type RpcClient = {
   rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: CreditRow[] | null; error: Error | null }>;
 };
 
-const DEFAULT_CREDITS = 10;
+const DEFAULT_CREDITS = 5;
 
 export function useCredits() {
   const { user } = useAuth();
