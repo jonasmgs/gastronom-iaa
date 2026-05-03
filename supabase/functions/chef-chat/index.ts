@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, isOriginAllowed, checkRateLimit } from "../_shared/config.ts";
+import { consumeAiCredit, refundAiCredit } from "../_shared/credits.ts";
 import {
   extractGoogleAiText,
   generateGoogleAiContent,
@@ -62,6 +63,10 @@ serve(async (req) => {
     return new Response(null, { headers: specificCorsHeaders });
   }
 
+  let creditConsumed = false;
+  let creditUserId = "";
+  let creditClient: ReturnType<typeof buildSupabaseClient> | null = null;
+
   try {
     const bearer = getBearerToken(req);
     if (!bearer) {
@@ -72,6 +77,7 @@ serve(async (req) => {
     }
 
     const supabaseClient = buildSupabaseClient(bearer);
+    creditClient = supabaseClient;
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Nao autorizado" }), {
@@ -123,6 +129,10 @@ serve(async (req) => {
       });
     }
 
+    await consumeAiCredit(supabaseClient, user.id);
+    creditConsumed = true;
+    creditUserId = user.id;
+
     const systemPrompt = [
       "Voce e o Gastronom.IA, um chef virtual especialista em gastronomia.",
       `A receita atual e: ${recipeContext.name}.`,
@@ -153,20 +163,14 @@ serve(async (req) => {
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("Google AI error:", model, aiResponse.status, errorText);
-      return new Response(JSON.stringify({ error: "Erro na IA" }), {
-        status: 500,
-        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error("Erro na IA");
     }
 
     const data = await aiResponse.json() as Record<string, unknown>;
     const answer = extractGoogleAiText(data);
 
     if (!answer) {
-      return new Response(JSON.stringify({ error: "A IA nao retornou resposta" }), {
-        status: 500,
-        headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error("A IA nao retornou resposta");
     }
 
     const encoder = new TextEncoder();
@@ -191,6 +195,9 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro interno";
     console.error("chef-chat error:", message);
+    if (creditConsumed && creditClient && creditUserId && !message.includes("Limite mensal")) {
+      await refundAiCredit(creditClient, creditUserId);
+    }
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
