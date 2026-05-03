@@ -76,6 +76,7 @@ const EditRecipe = () => {
         calories_total: recipe.calories_total || 0,
         nutrition_info: JSON.stringify({
           nutrition_info: recipe.nutrition_info || '',
+          nutrition_details: recipe.nutrition_details || null,
           chef_tips: recipe.chef_tips || '',
           difficulty: recipe.difficulty || '',
           prep_time: recipe.prep_time || '',

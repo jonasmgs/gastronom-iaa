@@ -300,15 +300,26 @@ async function fetchExternalRecipe(ingredients: string[]) {
     if (!fullMeal) return null;
 
     // Constrói um texto base para ajudar a IA
-    let recipeText = `Base de Receita Externa (TheMealDB):\nNome: ${fullMeal.strMeal}\nCategoria: ${fullMeal.strCategory}\nInstruções: ${fullMeal.strInstructions}\n\nIngredientes base: `;
+    const baseIngredients: string[] = [];
     for (let i = 1; i <= 20; i++) {
        const name = fullMeal[`strIngredient${i}`];
        const qty = fullMeal[`strMeasure${i}`];
        if (name && name.trim()) {
-         recipeText += `${name} (${qty}), `;
+         baseIngredients.push(`${name.trim()} (${String(qty ?? "").trim()})`);
        }
     }
-    return recipeText;
+    const instructions = String(fullMeal.strInstructions ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 1200);
+
+    return [
+      "Base externa TheMealDB para editar, nao reescrever do zero.",
+      `Nome: ${fullMeal.strMeal}`,
+      `Categoria: ${fullMeal.strCategory}`,
+      `Ingredientes: ${baseIngredients.join("; ")}`,
+      `Preparo resumido: ${instructions}`,
+    ].join("\n");
   } catch (e) {
     console.error("Erro ao buscar API externa:", e);
     return null;
@@ -350,6 +361,16 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[], exter
   ],
   "calories_total": 0,
   "nutrition_info": "string",
+  "nutrition_details": {
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sugar_g": 0,
+    "sodium_mg": 0,
+    "vitamins": [{ "name": "string", "amount": 0, "unit": "mg|mcg|IU", "percent_daily_value": 0 }],
+    "minerals": [{ "name": "string", "amount": 0, "unit": "mg|mcg", "percent_daily_value": 0 }]
+  },
   "chef_tips": "string",
   "substitutions_made": "string"
 }`;
@@ -362,14 +383,16 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[], exter
     "A receita deve ser saborosa, coerente e tecnicamente correta.",
     "Todos os ingredientes citados no preparo devem existir na lista de ingredientes.",
     "O preparo precisa ter pelo menos 4 passos completos.",
-    "Informe calorias realistas e um resumo nutricional por porcao.",
+    "Informe calorias totais da receita, macros totais e micronutrientes estimados da receita inteira.",
+    "Inclua proteina total, carboidratos, gorduras, fibras, acucar, sodio, principais vitaminas e minerais.",
+    "Os micronutrientes podem ser estimados por composicao media dos ingredientes; nao invente precisao falsa.",
   ].join(" ");
 
   if (mode === "transform") {
     return {
       systemPrompt,
       userPrompt: [
-        "Transforme a receita abaixo e devolva no schema pedido.",
+        "Edite a receita abaixo e devolva no schema pedido, reaproveitando estrutura, ingredientes e preparo sempre que possivel para economizar tokens.",
         existingRecipe ? `Receita base: ${existingRecipe}` : "",
         externalBase ? `Referencia externa para inspiracao: ${externalBase}` : "",
         activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
@@ -389,8 +412,8 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[], exter
     return {
       systemPrompt,
       userPrompt: [
-        "Crie uma receita personalizada para o seguinte perfil nutricional.",
-        externalBase ? `Referencia de preparo externa: ${externalBase}` : "",
+        externalBase ? "Edite a base externa abaixo para o perfil nutricional, mantendo o maximo possivel da estrutura original." : "Crie uma receita personalizada para o seguinte perfil nutricional.",
+        externalBase ? `Base externa: ${externalBase}` : "",
         `Ingredientes prioritarios: ${ingredients.join(", ") || "livre"}.`,
         description ? `Descricao do prato desejado: ${description}.` : "",
         category ? `Tipo de prato: ${category}.` : "",
@@ -406,8 +429,8 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[], exter
   return {
     systemPrompt,
     userPrompt: [
-      "Crie uma receita completa usando os ingredientes abaixo.",
-      externalBase ? `Use esta base como ponto de partida (Traduza e adapte): ${externalBase}` : "",
+      externalBase ? "Edite a receita base abaixo para atender aos ingredientes, filtros e rendimento. Mantenha o que for compativel." : "Crie uma receita completa usando os ingredientes abaixo.",
+      externalBase ? `Receita base externa: ${externalBase}` : "",
       `Ingredientes solicitados: ${ingredients.join(", ")}.`,
       description ? `Descricao do prato desejado: ${description}.` : "",
       category ? `Categoria desejada: ${category}.` : "",
@@ -489,7 +512,7 @@ serve(async (req) => {
       systemInstruction: systemPrompt,
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 6144,
         responseMimeType: "application/json",
         responseJsonSchema: recipeResponseSchema,
       },

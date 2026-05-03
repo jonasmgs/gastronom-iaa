@@ -13,10 +13,11 @@ import RecipeEditDrawer from '@/components/RecipeEditDrawer';
 import bgUtensils from '@/assets/bg-utensils.jpg';
 import type { Tables } from '@/integrations/supabase/types';
 import { invokeEdgeFunction } from '@/lib/edge-functions';
-import type { Ingredient, RecipeGeneratorResponse, Step } from '@/types/recipe';
+import type { Ingredient, NutrientItem, NutritionDetails, RecipeGeneratorResponse, Step } from '@/types/recipe';
 
 interface RecipeMeta {
   nutrition_info?: string;
+  nutrition_details?: NutritionDetails | null;
   chef_tips?: string;
   difficulty?: string;
   prep_time?: string;
@@ -85,6 +86,16 @@ const RecipeResult = () => {
     }
   }, [recipe]);
 
+  const formatNumber = (value?: number) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '0';
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  };
+
+  const formatNutrient = (item: NutrientItem) => {
+    const daily = item.percent_daily_value ? ` (${formatNumber(item.percent_daily_value)}% VD)` : '';
+    return `${item.name}: ${formatNumber(item.amount)} ${item.unit}${daily}`;
+  };
+
   const fetchRecipe = useCallback(async () => {
     if (!id) return;
     console.log('[RecipeResult] Fetching recipe:', id);
@@ -138,6 +149,12 @@ const RecipeResult = () => {
     }
     if (meta.chef_tips) text += `\n👨‍🍳 ${t('recipe.chefTips')}\n${meta.chef_tips}\n`;
     if (meta.nutrition_info) text += `\n📊 ${t('recipe.nutritionInfo')}\n${meta.nutrition_info}\n`;
+    if (meta.nutrition_details) {
+      const details = meta.nutrition_details;
+      text += `\nMacros totais\nProteina: ${formatNumber(details.protein_g)} g\nCarboidratos: ${formatNumber(details.carbs_g)} g\nGorduras: ${formatNumber(details.fat_g)} g\nFibras: ${formatNumber(details.fiber_g)} g\nSodio: ${formatNumber(details.sodium_mg)} mg\n`;
+      if (details.vitamins?.length) text += `Vitaminas: ${details.vitamins.map(formatNutrient).join('; ')}\n`;
+      if (details.minerals?.length) text += `Minerais: ${details.minerals.map(formatNutrient).join('; ')}\n`;
+    }
     text += `\nFeito com Gastronom.IA`;
 
     if (navigator.share) {
@@ -180,6 +197,7 @@ const RecipeResult = () => {
         calories_total: transformed.calories_total || 0,
         nutrition_info: JSON.stringify({
           nutrition_info: transformed.nutrition_info || '',
+          nutrition_details: transformed.nutrition_details || null,
           chef_tips: transformed.chef_tips || '',
           difficulty: transformed.difficulty || '',
           prep_time: transformed.prep_time || '',
@@ -408,6 +426,40 @@ const RecipeResult = () => {
             <section className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
               <h2 className="mb-2 text-sm font-semibold text-primary flex items-center gap-1.5"><ChefHat className="h-4 w-4" /> {t('recipe.chefTips')}</h2>
               <p className="text-sm leading-relaxed text-foreground/80 whitespace-pre-line">{meta.chef_tips}</p>
+            </section>
+          )}
+
+          {meta.nutrition_details && (
+            <section className="rounded-2xl border border-border bg-card p-4" aria-label="Detalhes nutricionais">
+              <h2 className="mb-3 text-sm font-semibold text-card-foreground">Macros e micronutrientes totais</h2>
+              <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+                <div className="rounded-lg bg-muted/60 p-2"><span className="block text-xs text-muted-foreground">Proteina</span><strong>{formatNumber(meta.nutrition_details.protein_g)} g</strong></div>
+                <div className="rounded-lg bg-muted/60 p-2"><span className="block text-xs text-muted-foreground">Carboidratos</span><strong>{formatNumber(meta.nutrition_details.carbs_g)} g</strong></div>
+                <div className="rounded-lg bg-muted/60 p-2"><span className="block text-xs text-muted-foreground">Gorduras</span><strong>{formatNumber(meta.nutrition_details.fat_g)} g</strong></div>
+                <div className="rounded-lg bg-muted/60 p-2"><span className="block text-xs text-muted-foreground">Fibras</span><strong>{formatNumber(meta.nutrition_details.fiber_g)} g</strong></div>
+                <div className="rounded-lg bg-muted/60 p-2"><span className="block text-xs text-muted-foreground">Acucar</span><strong>{formatNumber(meta.nutrition_details.sugar_g)} g</strong></div>
+                <div className="rounded-lg bg-muted/60 p-2"><span className="block text-xs text-muted-foreground">Sodio</span><strong>{formatNumber(meta.nutrition_details.sodium_mg)} mg</strong></div>
+              </div>
+              {(meta.nutrition_details.vitamins?.length || meta.nutrition_details.minerals?.length) && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {Boolean(meta.nutrition_details.vitamins?.length) && (
+                    <div>
+                      <h3 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Vitaminas</h3>
+                      <ul className="space-y-1 text-sm text-foreground/80">
+                        {meta.nutrition_details.vitamins?.map((item) => <li key={`${item.name}-${item.unit}`}>{formatNutrient(item)}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {Boolean(meta.nutrition_details.minerals?.length) && (
+                    <div>
+                      <h3 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Minerais</h3>
+                      <ul className="space-y-1 text-sm text-foreground/80">
+                        {meta.nutrition_details.minerals?.map((item) => <li key={`${item.name}-${item.unit}`}>{formatNutrient(item)}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
