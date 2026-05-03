@@ -5,68 +5,91 @@
   "description": "Receitas personalizadas com inteligência artificial",
   "start_url": "/",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "lang": "pt-BR",
+  "dir": "ltr",
   "scope": "/",
+  "iarc_rating_id": "none",
   "categories": [
     "food",
     "health",
     "lifestyle"
   ],
-  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "icons": [
     {
-      "src": "/icons/icon-192.jpg",
+      "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-512.jpg",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.jpg",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "/screenshots/screenshot1.jpg",
+      "src": "/screenshots/screenshot1.png",
       "sizes": "1080x1920",
-      "type": "image/jpeg",
+      "type": "image/png",
       "form_factor": "narrow",
-      "label": "Tela inicial do Gastronom.IA"
+      "label": "Interface Mobile do Gastronom.IA"
     },
     {
-      "src": "/screenshots/screenshot2.jpg",
-      "sizes": "1080x1920",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Receita gerada com IA"
+      "src": "/screenshots/screenshot_wide.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Interface Desktop do Gastronom.IA"
     }
   ],
+  "share_target": {
+    "action": "/?share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+gastronomia",
+      "url": "/?recipe=%s"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "note_taking": {
+    "new_note_url": "/?action=new-recipe"
+  },
   "shortcuts": [
     {
       "name": "Gerar Receita",
-      "short_name": "Receita",
-      "description": "Gerar nova receita com IA",
+      "short_name": "Gerar",
       "url": "/",
       "icons": [
         {
-          "src": "/icons/icon-192.jpg",
+          "src": "/icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -74,14 +97,15 @@
     {
       "name": "Minhas Receitas",
       "short_name": "Receitas",
-      "description": "Ver receitas salvas",
       "url": "/recipes",
       "icons": [
         {
-          "src": "/icons/icon-192.jpg",
+          "src": "/icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
