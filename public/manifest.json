@@ -106,6 +106,16 @@
       ]
     }
   ],
-  "related_applications": [],
-  "prefer_related_applications": false
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.gastronomia.app",
+      "id": "com.gastronomia.app"
+    }
+  ],
+  "prefer_related_applications": false,
+  "scope_extensions": [
+    { "origin": "*.vercel.app" },
+    { "origin": "https://gastronomia.app" }
+  ]
 }
