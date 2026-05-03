@@ -23,6 +23,24 @@ type Step = {
   tip: string;
 };
 
+type NutrientItem = {
+  name: string;
+  amount: number;
+  unit: string;
+  percent_daily_value: number;
+};
+
+type NutritionDetails = {
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  sugar_g: number;
+  sodium_mg: number;
+  vitamins: NutrientItem[];
+  minerals: NutrientItem[];
+};
+
 const recipeResponseSchema = {
   type: "object",
   additionalProperties: false,
@@ -37,6 +55,7 @@ const recipeResponseSchema = {
     "steps",
     "calories_total",
     "nutrition_info",
+    "nutrition_details",
     "chef_tips",
     "substitutions_made",
   ],
@@ -83,6 +102,47 @@ const recipeResponseSchema = {
     },
     calories_total: { type: "number", minimum: 0 },
     nutrition_info: { type: "string" },
+    nutrition_details: {
+      type: "object",
+      additionalProperties: false,
+      required: ["protein_g", "carbs_g", "fat_g", "fiber_g", "sugar_g", "sodium_mg", "vitamins", "minerals"],
+      properties: {
+        protein_g: { type: "number", minimum: 0 },
+        carbs_g: { type: "number", minimum: 0 },
+        fat_g: { type: "number", minimum: 0 },
+        fiber_g: { type: "number", minimum: 0 },
+        sugar_g: { type: "number", minimum: 0 },
+        sodium_mg: { type: "number", minimum: 0 },
+        vitamins: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["name", "amount", "unit", "percent_daily_value"],
+            properties: {
+              name: { type: "string" },
+              amount: { type: "number", minimum: 0 },
+              unit: { type: "string" },
+              percent_daily_value: { type: "number", minimum: 0 },
+            },
+          },
+        },
+        minerals: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["name", "amount", "unit", "percent_daily_value"],
+            properties: {
+              name: { type: "string" },
+              amount: { type: "number", minimum: 0 },
+              unit: { type: "string" },
+              percent_daily_value: { type: "number", minimum: 0 },
+            },
+          },
+        },
+      },
+    },
     chef_tips: { type: "string" },
     substitutions_made: { type: "string" },
   },
@@ -160,6 +220,37 @@ function normalizeSteps(value: unknown): Step[] {
     .filter((item) => item.description.length > 0);
 }
 
+function normalizeNutrientItems(value: unknown): NutrientItem[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      const record = typeof item === "object" && item ? item as Record<string, unknown> : {};
+      return {
+        name: String(record.name ?? "").trim(),
+        amount: Number(record.amount ?? 0) || 0,
+        unit: String(record.unit ?? "").trim(),
+        percent_daily_value: Number(record.percent_daily_value ?? 0) || 0,
+      };
+    })
+    .filter((item) => item.name.length > 0);
+}
+
+function normalizeNutritionDetails(value: unknown): NutritionDetails {
+  const record = typeof value === "object" && value ? value as Record<string, unknown> : {};
+
+  return {
+    protein_g: Number(record.protein_g ?? 0) || 0,
+    carbs_g: Number(record.carbs_g ?? 0) || 0,
+    fat_g: Number(record.fat_g ?? 0) || 0,
+    fiber_g: Number(record.fiber_g ?? 0) || 0,
+    sugar_g: Number(record.sugar_g ?? 0) || 0,
+    sodium_mg: Number(record.sodium_mg ?? 0) || 0,
+    vitamins: normalizeNutrientItems(record.vitamins),
+    minerals: normalizeNutrientItems(record.minerals),
+  };
+}
+
 function normalizeRecipe(recipe: Record<string, unknown>) {
   const ingredients = normalizeIngredients(recipe.ingredients);
   const steps = normalizeSteps(recipe.steps);
@@ -181,6 +272,7 @@ function normalizeRecipe(recipe: Record<string, unknown>) {
     steps,
     calories_total: Number(recipe.calories_total ?? 0) || 0,
     nutrition_info: String(recipe.nutrition_info ?? "").trim(),
+    nutrition_details: normalizeNutritionDetails(recipe.nutrition_details),
     chef_tips: String(recipe.chef_tips ?? "").trim(),
     substitutions_made: String(recipe.substitutions_made ?? "").trim(),
   };
