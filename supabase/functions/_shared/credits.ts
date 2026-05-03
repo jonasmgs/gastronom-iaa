@@ -6,9 +6,9 @@ export async function consumeAiCredit(supabaseClient: SupabaseClient, userId: st
   });
 
   if (error) {
-    const message = error.message?.includes("Limite mensal")
-      ? "Voce atingiu o limite mensal de 300 creditos."
-      : error.message || "Nao foi possivel consumir credito";
+    const message = error.message?.includes("Limite")
+      ? error.message
+      : "Voce atingiu o seu limite de geracoes.";
     throw new Error(message);
   }
 
