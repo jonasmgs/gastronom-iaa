@@ -42,15 +42,7 @@ const Settings = () => {
   const androidNative = isNativeAndroid();
   const androidBillingConfigured = isGooglePlayBillingConfigured();
 
-  useEffect(() => {
-    const checkout = searchParams.get('checkout');
-    if (checkout === 'success') {
-      toast.success(t('subscription.success') || 'Assinatura ativada com sucesso!');
-      void checkSubscription();
-    } else if (checkout === 'cancel') {
-      toast.info(t('subscription.cancelled') || 'Assinatura cancelada.');
-    }
-  }, [searchParams, checkSubscription, t]);
+
 
   const handleCheckout = async () => {
     setCheckoutLoading(true);
@@ -254,7 +246,7 @@ const Settings = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acao remove sua conta, receitas e perfil nutricional do app. Registros de pagamento podem ser mantidos pelo provedor de pagamento quando exigido por lei.
+                    Esta acao remove sua conta, receitas e perfil nutricional do app. Registros de pagamento sao mantidos exclusivamente pela loja de aplicativos (Google/Apple) conforme exigido por lei.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
