@@ -1,8 +1,6 @@
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import {
   createClient,
   type SupabaseClient,
-  type User,
 } from "npm:@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "./config.ts";
 
@@ -25,7 +23,7 @@ function getRequiredEnv(name: string) {
 export function createAdminClient(logStep?: LogStep): SupabaseClient | null {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!serviceRoleKey) {
-    logStep?.("SUPABASE_SERVICE_ROLE_KEY missing, customer cache disabled");
+    logStep?.("SUPABASE_SERVICE_ROLE_KEY missing, operations may fail");
     return null;
   }
 
@@ -61,94 +59,4 @@ export async function getAuthenticatedUser(req: Request, logStep?: LogStep) {
   });
 
   return data.user;
-}
-
-async function readStripeCustomerId(
-  adminClient: SupabaseClient | null,
-  userId: string,
-  logStep?: LogStep,
-) {
-  if (!adminClient) return null;
-
-  const { data, error } = await adminClient
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
-    logStep?.("Profile lookup failed", { message: error.message });
-    return null;
-  }
-
-  return data?.stripe_customer_id ?? null;
-}
-
-async function persistStripeCustomerId(
-  adminClient: SupabaseClient | null,
-  userId: string,
-  customerId: string,
-  logStep?: LogStep,
-) {
-  if (!adminClient) return;
-
-  const { error } = await adminClient
-    .from("profiles")
-    .update({ stripe_customer_id: customerId })
-    .eq("id", userId);
-
-  if (error) {
-    logStep?.("Failed to cache customer ID", { message: error.message });
-    return;
-  }
-
-  logStep?.("Customer ID cached", { customerId });
-}
-
-type StripeCustomerOptions = {
-  adminClient: SupabaseClient | null;
-  stripe: Stripe;
-  user: User;
-  createIfMissing?: boolean;
-  logStep?: LogStep;
-};
-
-export async function getOrCreateStripeCustomerId({
-  adminClient,
-  stripe,
-  user,
-  createIfMissing = false,
-  logStep,
-}: StripeCustomerOptions) {
-  let customerId = await readStripeCustomerId(adminClient, user.id, logStep);
-
-  if (customerId) {
-    logStep?.("Customer ID loaded from profile", { customerId });
-    return customerId;
-  }
-
-  const customers = await stripe.customers.list({
-    email: user.email ?? undefined,
-    limit: 1,
-  });
-
-  customerId = customers.data[0]?.id ?? null;
-
-  if (!customerId && createIfMissing) {
-    const customer = await stripe.customers.create({
-      email: user.email ?? undefined,
-      metadata: { user_id: user.id },
-    });
-
-    customerId = customer.id;
-    logStep?.("Stripe customer created", { customerId });
-  } else {
-    logStep?.("Customer lookup done", { hasCustomer: Boolean(customerId) });
-  }
-
-  if (customerId) {
-    await persistStripeCustomerId(adminClient, user.id, customerId, logStep);
-  }
-
-  return customerId;
 }

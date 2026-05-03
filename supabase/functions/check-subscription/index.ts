@@ -1,11 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import {
   corsHeaders,
   createAdminClient,
   getAuthenticatedUser,
-  getOrCreateStripeCustomerId,
 } from "../_shared/billing.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -21,18 +19,17 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
     const authHeader = req.headers.get("Authorization");
     const customToken = req.headers.get("x-user-jwt");
     const bearer = customToken ? `Bearer ${customToken}` : authHeader;
     if (!bearer) throw new Error("No authorization token");
 
     const user = await getAuthenticatedUser(req, logStep);
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    
+    // Admin client para bypass RLS se necessário
     const adminClient = createAdminClient(logStep);
 
+    // Cliente do usuário para verificar permissões atuais
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -42,6 +39,7 @@ serve(async (req) => {
       },
     );
 
+    // Verifica acesso de teste no perfil
     const { data: profile, error: profileError } = await userClient
       .from("profiles")
       .select("test_access")
@@ -61,45 +59,14 @@ serve(async (req) => {
       });
     }
 
-    const customerId = await getOrCreateStripeCustomerId({
-      adminClient,
-      stripe,
-      user,
-      logStep,
-    });
-
-    if (!customerId) {
-      logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    logStep("Found customer", { customerId });
-
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-
-    const hasActiveSub = subscriptions.data.length > 0;
-    let subscriptionEnd = null;
-    let productId = null;
-
-    if (hasActiveSub) {
-      const sub = subscriptions.data[0];
-      subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
-      productId = sub.items.data[0].price.product;
-      logStep("Active subscription", { productId, subscriptionEnd });
-    } else {
-      logStep("No active subscription");
-    }
-
+    // TODO: Implementar integração com Google Play Billing / RevenueCat
+    // Por enquanto, sem Stripe, usuários normais não têm assinatura ativa
+    logStep("No active subscription (Stripe removed)");
+    
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      product_id: productId,
-      subscription_end: subscriptionEnd,
+      subscribed: false,
+      product_id: null,
+      subscription_end: null,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
