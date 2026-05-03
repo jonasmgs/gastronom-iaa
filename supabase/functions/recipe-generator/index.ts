@@ -507,7 +507,7 @@ serve(async (req) => {
 
     const externalBase = await fetchExternalRecipe(ingredients);
     const { systemPrompt, userPrompt } = buildPrompt(body, ingredients, externalBase);
-    const { model, response: aiResponse } = await generateGoogleAiContent({
+    let { model, response: aiResponse } = await generateGoogleAiContent({
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       systemInstruction: systemPrompt,
       generationConfig: {
@@ -521,6 +521,33 @@ serve(async (req) => {
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("Google AI error:", model, aiResponse.status, errorText);
+
+      const shouldRetryWithoutSchema =
+        aiResponse.status === 400 &&
+        (errorText.includes("responseJsonSchema") ||
+          errorText.includes("response_schema") ||
+          errorText.includes("schema") ||
+          errorText.includes("INVALID_ARGUMENT"));
+
+      if (shouldRetryWithoutSchema) {
+        const retry = await generateGoogleAiContent({
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          systemInstruction: systemPrompt,
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 6144,
+            responseMimeType: "application/json",
+          },
+        });
+
+        model = retry.model;
+        aiResponse = retry.response;
+      }
+    }
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("Google AI error after retry:", model, aiResponse.status, errorText);
       return new Response(JSON.stringify({ error: "Erro ao gerar receita" }), {
         status: 500,
         headers: { ...specificCorsHeaders, "Content-Type": "application/json" },
