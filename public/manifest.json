@@ -57,8 +57,8 @@
       "src": "/screenshots/screenshot2.jpg",
       "sizes": "1080x1920",
       "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Interface Desktop do Gastronom.IA"
+      "form_factor": "narrow",
+      "label": "Interface Mobile do Gastronom.IA"
     }
   ],
   "share_target": {
