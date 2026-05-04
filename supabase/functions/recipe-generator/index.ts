@@ -529,8 +529,8 @@ serve(async (req) => {
       });
     }
 
-    await consumeAiCredit(supabaseClient, user.id);
-    creditConsumed = true;
+    // await consumeAiCredit(supabaseClient, user.id);
+    creditConsumed = false; // Desativado temporariamente
     creditUserId = user.id;
 
     const cacheKey = generateCacheKey(ingredients, body);

@@ -7,8 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from '@/hooks/useAuth';
 import { initTheme } from '@/lib/theme';
-import SubscriptionPopup from '@/components/SubscriptionPopup';
-import { CreditCounter } from '@/components/CreditCounter';
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Analytics } from '@vercel/analytics/react';
 import { toast } from 'sonner';
@@ -107,8 +105,6 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <AppRoutes />
-          <CreditCounter />
-          <SubscriptionPopup />
           <InstallPrompt />
         </BrowserRouter>
         <Analytics />
