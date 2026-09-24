@@ -6,6 +6,8 @@ import {
   getAuthenticatedUser,
 } from "../_shared/billing.ts";
 
+const FREE_NEW_ACCOUNTS_SINCE = "2026-09-24T00:00:00.000Z";
+
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const suffix = details ? ` ${JSON.stringify(details)}` : "";
   console.log(`[CHECK-SUBSCRIPTION] ${step}${suffix}`);
@@ -25,6 +27,18 @@ serve(async (req) => {
     if (!bearer) throw new Error("No authorization token");
 
     const user = await getAuthenticatedUser(req, logStep);
+
+    // Acesso gratuito temporario para contas criadas a partir de 24/09/2026.
+    if (new Date(user.created_at).getTime() >= new Date(FREE_NEW_ACCOUNTS_SINCE).getTime()) {
+      logStep("Returning temporary free access for new account", { userId: user.id });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: "temporary-free-new-account",
+        subscription_end: null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // Admin client para bypass RLS se necessário
     const adminClient = createAdminClient(logStep);
