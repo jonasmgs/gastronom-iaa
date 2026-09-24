@@ -17,6 +17,12 @@ import {
 import { SUBSCRIPTION_REFRESH_EVENT } from '@/lib/subscription-events';
 import { useAuth } from './useAuth';
 
+const FREE_NEW_ACCOUNTS_SINCE = '2026-09-24T00:00:00.000Z';
+
+function hasTemporaryFreeAccess(createdAt: string | undefined) {
+  return Boolean(createdAt && new Date(createdAt).getTime() >= new Date(FREE_NEW_ACCOUNTS_SINCE).getTime());
+}
+
 interface SubscriptionState {
   subscribed: boolean;
   productId: string | null;
@@ -180,6 +186,17 @@ export function useSubscription() {
         return;
       }
 
+      // Acesso gratuito temporario para contas novas. Nenhuma cobranca ou verificacao de loja.
+      if (hasTemporaryFreeAccess(user.created_at)) {
+        setState({
+          subscribed: true,
+          productId: 'temporary-free-new-account',
+          subscriptionEnd: null,
+          loading: false,
+        });
+        return;
+      }
+
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('test_access')
@@ -258,6 +275,10 @@ export function useSubscription() {
   }, [checkSubscription]);
 
   const openCheckout = async () => {
+    if (user && hasTemporaryFreeAccess(user.created_at)) {
+      return;
+    }
+
     if (isNativeAndroid()) {
       const productId = getGooglePlaySubscriptionProductId();
 
