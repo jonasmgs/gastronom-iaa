@@ -8,6 +8,11 @@ import {
 } from "../_shared/google-ai.ts";
 
 const corsHeaders = getCorsHeaders(null);
+const FREE_NEW_ACCOUNTS_SINCE = "2026-09-24T00:00:00.000Z";
+
+function hasTemporaryFreeAccess(createdAt: string | undefined) {
+  return Boolean(createdAt && new Date(createdAt).getTime() >= new Date(FREE_NEW_ACCOUNTS_SINCE).getTime());
+}
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -129,9 +134,12 @@ serve(async (req) => {
       });
     }
 
-    await consumeAiCredit(supabaseClient, user.id);
-    creditConsumed = true;
-    creditUserId = user.id;
+    // Contas novas no periodo temporario nao consomem creditos nem sofrem paywall.
+    if (!hasTemporaryFreeAccess(user.created_at)) {
+      await consumeAiCredit(supabaseClient, user.id);
+      creditConsumed = true;
+      creditUserId = user.id;
+    }
 
     const systemPrompt = [
       "Voce e o Gastronom.IA, um chef virtual especialista em gastronomia.",
