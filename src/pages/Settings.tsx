@@ -41,6 +41,7 @@ const Settings = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const androidNative = isNativeAndroid();
   const androidBillingConfigured = isGooglePlayBillingConfigured();
+  const temporaryFreeAccess = subscribed && subscriptionEnd === null;
 
 
 
@@ -164,7 +165,9 @@ const Settings = () => {
                   {t('subscription.activeUntil') || 'Ativo ate'}{' '}
                   {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : '-'}
                 </p>
-                {androidNative && !androidBillingConfigured ? (
+                {temporaryFreeAccess ? (
+                  <p className="text-xs font-medium text-primary">Acesso gratuito temporario para novas contas. Nenhuma cobranca.</p>
+                ) : androidNative && !androidBillingConfigured ? (
                   <p className="text-xs text-muted-foreground">
                     {getAndroidBillingUnavailableMessage()}
                   </p>
