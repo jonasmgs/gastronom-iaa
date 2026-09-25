@@ -59,7 +59,17 @@ const EditRecipe = () => {
     setTransforming(true);
     try {
       const { data, error } = await invokeEdgeFunction<RecipeGeneratorResponse>('recipe-generator', {
-        body: { mode: 'transform', existing_recipe: recipeText, filters, language: i18n.language },
+        body: {
+          mode: 'transform',
+          existing_recipe: recipeText,
+          filters: {
+            vegan: filters.vegan,
+            vegetarian: false,
+            glutenFree: filters.glutenFree,
+            lactoseFree: filters.lactoseFree,
+          },
+          language: i18n.language,
+        },
         token: session?.access_token,
       });
       if (error) throw error;
