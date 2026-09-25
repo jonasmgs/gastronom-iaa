@@ -411,10 +411,15 @@ function buildPrompt(body: Record<string, unknown>, ingredients: string[], exter
     return {
       systemPrompt,
       userPrompt: [
-        "Edite a receita abaixo e devolva no schema pedido, reaproveitando estrutura, ingredientes e preparo sempre que possivel para economizar tokens.",
-        existingRecipe ? `Receita base: ${existingRecipe}` : "",
-        externalBase ? `Referencia externa para inspiracao: ${externalBase}` : "",
-        activeFilters ? `Filtros obrigatorios: ${activeFilters}.` : "",
+        "EDITE A RECEITA BASE, NAO CRIE UMA RECEITA ALEATORIA NOVA.",
+        "Mantenha o nome, a identidade, os ingredientes e o modo de preparo originais sempre que forem compativeis.",
+        "APLIQUE OBRIGATORIAMENTE TODOS os filtros selecionados pelo usuario.",
+        "Se um filtro exigir mudanca de ingrediente, substitua o ingrediente por uma alternativa culinariamente equivalente e altere tambem as quantidades e etapas do preparo quando necessario.",
+        "Nunca deixe um ingrediente proibido por um filtro ativo na lista final.",
+        "Confira a lista final ingrediente por ingrediente antes de responder.",
+        existingRecipe ? `RECEITA BASE DO USUARIO (fonte principal): ${existingRecipe}` : "",
+        activeFilters ? `FILTROS OBRIGATORIOS SELECIONADOS PELO USUARIO: ${activeFilters}.` : "Nenhum filtro ativo.",
+        externalBase ? `Referencia externa apenas como apoio, nunca como substituta da receita do usuario: ${externalBase}` : "",
         category ? `Categoria desejada: ${category}.` : "",
         complexity ? `Complexidade desejada: ${complexity}.` : "",
         `Rendimento obrigatorio: ${servings} porcoes.`,
@@ -533,18 +538,25 @@ serve(async (req) => {
     creditConsumed = false; // Desativado temporariamente
     creditUserId = user.id;
 
+    // Nunca use cache para "transform": a receita digitada pelo usuario e a entrada principal.
+    // O cache anterior ignorava existing_recipe e podia devolver outra receita com os mesmos filtros.
     const cacheKey = generateCacheKey(ingredients, body);
     
-    // Tenta buscar no cache global (qualquer receita salva com essa chave)
-    const { data: cachedRecipe, error: cacheError } = await supabaseClient
-      .from("recipes")
-      .select("*")
-      .eq("cache_key", cacheKey)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let cachedRecipe = null;
+    let cacheError = null;
+    if (mode !== "transform") {
+      const result = await supabaseClient
+        .from("recipes")
+        .select("*")
+        .eq("cache_key", cacheKey)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      cachedRecipe = result.data;
+      cacheError = result.error;
+    }
 
-    if (!cacheError && cachedRecipe) {
+    if (mode !== "transform" && !cacheError && cachedRecipe) {
       console.log("Cache hit! Returning existing recipe for key:", cacheKey);
       return new Response(JSON.stringify({
         recipe_name: cachedRecipe.recipe_name,
